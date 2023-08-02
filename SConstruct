@@ -75,7 +75,7 @@ for number in env["NUMBERS_OF_TOPICS"]:
 results = []
 for model in topic_model_list:
     for resolution in env["GROUP_RESOLUTIONS"]:
-    	results.append(env.ApplyModel("work/counts_with_{}_resolution_{}".format(resolution, model[0]), model[1], GROUP_RESOLUTION = resolution, DATA = json_metadata_including_text_ocr, NUMBER_OF_TOPICS = model[0]))
+    	results.append(env.ApplyModel("work/counts_with_{}_resolution_{}_topics".format(resolution, model[0]), model[1], GROUP_RESOLUTION = resolution, DATA = json_metadata_including_text_ocr, NUMBER_OF_TOPICS = model[0]))
 	
 
 #for dataset_name in env["DATASETS"]:
