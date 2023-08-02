@@ -38,9 +38,9 @@ env = Environment(
     tools=[steamroller.generate],
     BUILDERS={ 
         "PerformOcr" : Builder(
-            action="python /home/sbacker2/minstrelsy-in-sheet-music/scripts/perform_ocr.py --input ${SOURCES[0]} --output ${TARGETS[0]}", chdir = False),
+            action="python scripts/perform_ocr.py --input ${SOURCES[0]} --output ${TARGETS[0]}", chdir = False),
         "TrainModel" : Builder(
-            action="python /home/sbacker2/minstrelsy-in-sheet-music/scripts/train_model.py --data ${SOURCES[0]}  --output_file ${TARGETS[0]} --topic_num ${NUMBER_OF_TOPICS}", chdir = False            
+            action="python scripts/train_model.py --data ${SOURCES[0]}  --output_file ${TARGETS[0]} --topic_num ${NUMBER_OF_TOPICS}", chdir = False            
         ),
         "ApplyModel" : Builder(
             action="python scripts/apply_model.py --model ${SOURCES[0]} --data ${DATA} --group_resolution ${GROUP_RESOLUTION}  --counts ${TARGETS[0]} --topic_num ${NUMBER_OF_TOPICS}"
