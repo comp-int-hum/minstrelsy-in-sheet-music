@@ -1,1 +1,6 @@
 steamroller
+pillow
+PyPDF2
+pytesseract
+nltk
+gensim
