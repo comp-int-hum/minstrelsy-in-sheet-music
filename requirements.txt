@@ -4,6 +4,4 @@ PyPDF2
 pytesseract
 nltk
 gensim
-fitz 
-frontend
 PyMuPDF
