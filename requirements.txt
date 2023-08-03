@@ -5,5 +5,5 @@ pytesseract
 nltk
 gensim
 fitz 
-frontent
+frontend
 PyMuPDF
