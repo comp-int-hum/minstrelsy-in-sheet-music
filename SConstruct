@@ -26,7 +26,7 @@ import pickle
 vars = Variables("custom.py")
 vars.AddVariables( 
     ("NUMBERS_OF_TOPICS", "", [5,10,15,20,30]),
-    ("DATA_LOCATION", "", "/home/sbacker2/minstrelsy-in-sheet-music/data/levy_zip.zip"),
+    ("DATA_LOCATION", "", "/home/sbacker2/minstrelsy-in-sheet-music/data/zip_test.zip"),
     ("GROUP_RESOLUTIONS", "", [5, 10, 25]),
     ("CHUNK_SIZE", "", [500])
 )    
@@ -43,9 +43,10 @@ env = Environment(
             action="python scripts/train_model.py --data ${SOURCES[0]}  --output_file ${TARGETS[0]} --topic_num ${NUMBER_OF_TOPICS}", chdir = False            
         ),
         "ApplyModel" : Builder(
-            action="python scripts/apply_model.py --model ${SOURCES[0]} --data ${DATA} --group_resolution ${GROUP_RESOLUTION}  --counts ${TARGETS[0]} --topic_num ${NUMBER_OF_TOPICS}"
-        )       
-    }
+            action="python scripts/apply_model.py --model ${SOURCES[0]} --data ${DATA} --group_resolution ${GROUP_RESOLUTION}  --counts ${TARGETS[0]} --topic_num ${NUMBER_OF_TOPICS} --json_out ${JSON_OUT} --minstrel_counts ${MINSTREL_COUNTS}"
+        ),       
+	"InspectModel" : Builder (action = "python scripts/inspect_model.py --counts ${SOURCES[0]} --figure ${TARGETS[0]} --model ${MODEL}")
+}
 )
 
 
@@ -75,46 +76,17 @@ for number in env["NUMBERS_OF_TOPICS"]:
 results = []
 for model in topic_model_list:
     for resolution in env["GROUP_RESOLUTIONS"]:
-    	results.append(env.ApplyModel("work/counts_with_{}_resolution_{}_topics".format(resolution, model[0]), model[1], GROUP_RESOLUTION = resolution, DATA = json_metadata_including_text_ocr, NUMBER_OF_TOPICS = model[0]))
-	
+    	results.append([resolution, model, (env.ApplyModel("work/counts_with_{}_resolution_{}_topics".format(resolution, model[0]),model[1], GROUP_RESOLUTION = resolution, DATA = json_metadata_including_text_ocr, NUMBER_OF_TOPICS = model[0], JSON_OUT = "work/levy_json_{}_topics_per_word.jsonl".format(model[0]), MINSTREL_COUNTS = "work/minstrel_counts_with_{}_resolution_{}_topics".format(resolution, model[0])))])
+output = []
+#results format [resolution, [number, model],apply model]
+for result in results:
+    output.append(env.InspectModel("work/graph_with_{}_resolution_{}_topics.png".format(result[0],result[1][0]), "work/counts_with_{}_resolution_{}_topics".format(result[0], result[1][0]), MODEL = result[1][1]))
+    output.append(env.InspectModel("work/graph_of_minstrel_texts_with_{}_resolution_{}_topics.png".format(result[0],result[1][0]), "work/minstrel_counts_with_{}_resolution_{}_topics".format(result[0], result[1][0]), MODEL = result[1][1]))
 
-#for dataset_name in env["DATASETS"]:
- #   data = env.CreateData("work/${DATASET_NAME}/data.txt", [], DATASET_NAME=dataset_name)
-  #  for fold in range(1, env["FOLDS"] + 1):
-   #     train, dev, test = env.ShuffleData(
-    #        [
-     #           "work/${DATASET_NAME}/${FOLD}/train.txt",
-      #          "work/${DATASET_NAME}/${FOLD}/dev.txt",
-       #         "work/${DATASET_NAME}/${FOLD}/test.txt",
-        #    ],
-         #   data,
-          #  FOLD=fold,
-           # DATASET_NAME=dataset_name,
-       # )
-       # for model_type in env["MODEL_TYPES"]:
-        #    for parameter_value in env["PARAMETER_VALUES"]:
-         #       model = env.TrainModel(
-          #          "work/${DATASET_NAME}/${FOLD}/${MODEL_TYPE}/${PARAMETER_VALUE}/model.bin",
-           #         [train, dev],
-            #        FOLD=fold,
-             #       DATASET_NAME=dataset_name,
-              #      MODEL_TYPE=model_type,
-               #     PARAMETER_VALUE=parameter_value,
-               # )
-               # results.append(
-                #    env.ApplyModel(
-                 #       "work/${DATASET_NAME}/${FOLD}/${MODEL_TYPE}/${PARAMETER_VALUE}/applied.txt",
-                  #      [model, test],
-                   #     FOLD=fold,
-                    #    DATASET_NAME=dataset_name,
-                     #   MODEL_TYPE=model_type,
-                      #  PARAMETER_VALUE=parameter_value,                        
-                   # )
-               # )
+    
 
 # Use the list of applied model outputs to generate an evaluation report (table, plot,
 # f-score, confusion matrix, whatever makes sense).
 #report = env.GenerateReport(
 #    "work/report.txt",
- #   results
-#)
+ #   results)
