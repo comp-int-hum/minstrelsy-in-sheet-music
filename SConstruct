@@ -26,7 +26,7 @@ import pickle
 vars = Variables("custom.py")
 vars.AddVariables( 
     ("NUMBERS_OF_TOPICS", "", [5,10,15,20,30]),
-    ("DATA_LOCATION", "", "/home/sbacker2/minstrelsy-in-sheet-music/data/zip_test.zip"),
+    ("DATA_LOCATION", "", "/home/sbacker2/minstrelsy-in-sheet-music/data/levy_zip.zip"),
     ("GROUP_RESOLUTIONS", "", [5, 10, 25]),
     ("CHUNK_SIZE", "", [500])
 )    
