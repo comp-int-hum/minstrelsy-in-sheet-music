@@ -5,3 +5,4 @@ pytesseract
 nltk
 gensim
 PyMuPDF
+matplotlib
