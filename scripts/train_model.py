@@ -67,12 +67,12 @@ for x in holder_list:
 dct = Dictionary(documents = output_list)
 dct.filter_extremes(no_below=5, no_above=0.7)
 temp = dct[0]
-dct.save("work/dictionary_{}_topics.gensim".format(no_topics))
+#dct.save("work/dictionary_{}_topics.gensim".format(no_topics))
 corpus = [dct.doc2bow(doc) for doc in output_list]
 model = LdaModel(
 corpus, 
     num_topics = no_topics, 
-    id2word=dct.id2token, 
+    id2word=dct, 
     alpha="auto", 
     eta="auto", 
     iterations=50, 
