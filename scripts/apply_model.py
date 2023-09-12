@@ -68,6 +68,22 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    "--date_cutoff",
+    dest="cutoff_date",
+    default=1930,
+    type=int,
+    help="final date counted for groups"
+)
+
+parser.add_argument(
+    "--date_start",
+    dest="start_date",
+    default=1800,
+    type=int,
+    help="final date counted for groups"
+)
+
+parser.add_argument(
     "--minimum_word_length",
     dest="minimum_word_length",
     default=3,
@@ -88,6 +104,7 @@ data_dictionary_list = []
 group_names = {}
 output_json_l = []
 lost_words = []
+pub_date_lost = 0
 # Read in the model that was previously trained and serialized.
 with open(args.model, "rb") as ifd:
     model = pickle.loads(ifd.read())
@@ -106,6 +123,7 @@ with open(args.data, "rt") as ifd:
 
 
     for row in data_dictionary_list:
+        new_json_row = {}
 
         
         # We want to prepare the data the same way we prepared the data that
@@ -123,10 +141,6 @@ with open(args.data, "rt") as ifd:
            )
         
         
-          
-            
-          
-          
           
           
 
@@ -153,7 +167,7 @@ with open(args.data, "rt") as ifd:
         for word in labeled_subdocument:
      #       print("this is the phi output per word")
       #      print(word)
-            english_word = dicti.get(word[0])
+            english_word = model.id2word.get(word[0])
             #labeled_word_list.append([english_word,word])
             word_id = word[0]
             non_float_topics_list = []
@@ -171,11 +185,13 @@ with open(args.data, "rt") as ifd:
             new_t = topic[:1] + (float(topic[1]),)
             topic_list.append(new_t)
             
+        new_json_row["topics_for_word_phi"] = labeled_word_list
+        new_json_row["document_topics"] = topic_list
+        new_json_row["topics_for_word"] = test 
+        new_json_row["levy_pid"] = row['levy_pid']
+        output_json_l.append(new_json_row)
         row["topics_for_word_phi"] = labeled_word_list
-        row["document_topics"] = topic_list
-        row["topics_for_word"] = test 
-        output_json_l.append(row)
-      
+        
     
    
         if row["pub_date"].isdigit():                                                                                                                                
@@ -207,27 +223,31 @@ with open(args.data, "rt") as ifd:
 
                     
                     # Add the number of times this word appeared in the subdocument to the topic's count for the group.
-                     
-                      groupwise_topic_counts[group][topic] = groupwise_topic_counts[group].get(topic, 0) + subdocument_bow_lookup[word_id]
-                      if row["subjectSearched"] == "Minstrel shows":
-                          minstrel_topic_counts[group] = minstrel_topic_counts.get(group, {})
-                          minstrel_topic_counts[group][topic] = minstrel_topic_counts[group].get(topic,0) + subdocument_bow_lookup[word_id]
-
+                      if group_value  < args.cutoff_date and group_value > args.start_date: 
+                          groupwise_topic_counts[group][topic] = groupwise_topic_counts[group].get(topic, 0) + subdocument_bow_lookup[word_id]
+                          if row["subjectSearched"] == "Minstrel shows":
+                              minstrel_topic_counts[group] = minstrel_topic_counts.get(group, {})
+                              minstrel_topic_counts[group][topic] = minstrel_topic_counts[group].get(topic,0) + subdocument_bow_lookup[word_id]
+                         # else:
+                          #    groupwise_topic_counts[group][topic] = groupwise_topic_counts[group].get(topic, 0) + subdocument_bow_lookup[word_id]
                           
                   else:
                       counter = counter + 1
-        #              print(counter)
                       lost_words.append(word)
+        else:
+            pub_date_lost = pub_date_lost + 1 
 with open(args.json_out, "wt") as out_thing:
   for line in output_json_l:
       out_thing.write(json.dumps(line))
 
 counter = str(counter)
-with open("work/lost_words{}.txt".format(counter), "wt") as rt:
-     for word in lost_words:
+with open("work/lost_words{}topics{}counts.txt".format(no_topics, args.group_resolution), "wt") as rt:
+    rt.write("this is the lost words counter")
+    rt.write(counter)
+    rt.write("this is the number of documents without dates")
+    rt.write(str(pub_date_lost))
+    for word in lost_words:
          rt.write(str(word))
-     rt.write(counter)
-     
 
 # Save the counts to a file in the "JSON" format.  The 'indent=4' argument makes it a lot easier
 # for a human to read the resulting file directly.
