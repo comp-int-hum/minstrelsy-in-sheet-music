@@ -93,7 +93,7 @@ matrix_of_counts = (matrix_of_counts / matrix_of_counts.sum(0))
 # Note: matplotlib can be rather baroque, and there are other
 # libraries, like seaborn or plotnine, that build easier-to-use
 # abstractions on top of it.
-fig = Figure(figsize=(20,20))
+fig = Figure(figsize=(40,40))
 ax = fig.add_axes((.06,.62,.9,.33))
 ax2 = fig.add_axes(
     (.06,.1,.9,.35),

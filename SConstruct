@@ -43,9 +43,12 @@ env = Environment(
             action="python scripts/train_model.py --data ${SOURCES[0]}  --output_file ${TARGETS[0]} --topic_num ${NUMBER_OF_TOPICS}", chdir = False            
         ),
         "ApplyModel" : Builder(
-            action="python scripts/apply_model.py --model ${SOURCES[0]} --data ${DATA} --group_resolution ${GROUP_RESOLUTION}  --counts ${TARGETS[0]} --topic_num ${NUMBER_OF_TOPICS} --json_out ${JSON_OUT} --minstrel_counts ${MINSTREL_COUNTS}"
+            action="python scripts/apply_model.py --model ${SOURCES[0]} --data ${DATA} --group_resolution ${GROUP_RESOLUTION}  --counts ${TARGETS[0]} --topic_num ${NUMBER_OF_TOPICS} --json_out ${TARGETS[1]} --minstrel_counts ${TARGETS[2]}"
         ),       
-	"InspectModel" : Builder (action = "python scripts/inspect_model.py --counts ${SOURCES[0]} --figure ${TARGETS[0]} --model ${MODEL}")
+	"InspectModel" : Builder (action = "python scripts/inspect_model.py --counts ${SOURCES[0]} --figure ${TARGETS[0]} --model ${MODEL}"),
+	"CalculateVariance": Builder ( action = "python scripts/calculate_variance.py --counts${SOURCE[0]} --output${TARGETS[0]}" )
+
+
 }
 )
 
@@ -74,15 +77,22 @@ json_metadata_including_text_ocr = env.PerformOcr(["work/json_metadata.jsonl"],e
 for number in env["NUMBERS_OF_TOPICS"]:
     topic_model_list.append([number, (env.TrainModel("work/model_with_{}_topics.bin".format(number),json_metadata_including_text_ocr, NUMBER_OF_TOPICS = number))])
 results = []
+
+# model format model [0] = number of topics, model[1] = trained model 
+
 for model in topic_model_list:
     for resolution in env["GROUP_RESOLUTIONS"]:
-    	results.append([resolution, model, (env.ApplyModel("work/counts_with_{}_resolution_{}_topics".format(resolution, model[0]),model[1], GROUP_RESOLUTION = resolution, DATA = json_metadata_including_text_ocr, NUMBER_OF_TOPICS = model[0], JSON_OUT = "work/levy_json_{}_topics_per_word.jsonl".format(model[0]), MINSTREL_COUNTS = "work/minstrel_counts_with_{}_resolution_{}_topics".format(resolution, model[0])))])
+    	results.append([resolution, model, (env.ApplyModel(["work/counts_with_{}_resolution_{}_topics".format(resolution, model[0]),"work/levy_json_{}_topics_per_word{}.jsonl".format(model[0],resolution),"work/minstrel_counts_with_{}_resolution_{}_topics".format(resolution, model[0])], model[1], GROUP_RESOLUTION = resolution, DATA = json_metadata_including_text_ocr, NUMBER_OF_TOPICS = model[0]))])
 output = []
 #results format [resolution, [number, model],apply model]
 for result in results:
-    output.append(env.InspectModel("work/graph_with_{}_resolution_{}_topics.png".format(result[0],result[1][0]), "work/counts_with_{}_resolution_{}_topics".format(result[0], result[1][0]), MODEL = result[1][1]))
+    output.append([results,env.InspectModel("work/graph_with_{}_resolution_{}_topics.png".format(result[0],result[1][0]), "work/counts_with_{}_resolution_{}_topics".format(result[0], result[1][0]), MODEL = result[1][1])])
     output.append(env.InspectModel("work/graph_of_minstrel_texts_with_{}_resolution_{}_topics.png".format(result[0],result[1][0]), "work/minstrel_counts_with_{}_resolution_{}_topics".format(result[0], result[1][0]), MODEL = result[1][1]))
 
+variance = []
+for put in output:
+    variance.append(env.CalculateVariance("work/variance_with_{}_resolution_{}_topics.json".format(put[0][0], put[0][1][0]), "work/minstrel_counts_with_{}_reso\
+lution_{}_topics".format(put[0][0], put[0][1][0])))
     
 
 # Use the list of applied model outputs to generate an evaluation report (table, plot,
