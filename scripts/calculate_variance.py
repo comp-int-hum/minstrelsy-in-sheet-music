@@ -78,5 +78,5 @@ results = compute_variances_and_organize(args.data)
 # If you want to save the results to a JSON file:
 
 with open(args.output, 'w') as f:
-    json.dump(results, f  indent=4)
+    json.dump(results, f,  indent=4)
 

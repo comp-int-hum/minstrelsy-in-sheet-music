@@ -43,21 +43,6 @@ parser.add_argument(
     help="Counts output file."
 )
 
-parser.add_argument(
-    "--minstrel_counts",
-    dest="minstrel_counts",
-    required=True,
-    help="Minstrel Counts  output file."
-)
-
-
-parser.add_argument(
-    "--json_out",
-    dest="json_out",
-    required=True,
-    help="Counts output file."
-)
-
 
 parser.add_argument(
     "--group_resolution",
@@ -105,13 +90,18 @@ group_names = {}
 output_json_l = []
 lost_words = []
 pub_date_lost = 0
-counter = 0 
+counter = 0
 # Read in the model that was previously trained and serialized.
 with open(args.model, "rb") as ifd:
     model = pickle.loads(ifd.read())
 
+    
 
 with open(args.data, "rt") as ifd:
+
+    random_numbers = []
+    for i in range(20000):
+        random_numbers.append(random.randint(1, 2000))
 
     for line in ifd:
         dictionary = json.loads(line)
@@ -119,7 +109,8 @@ with open(args.data, "rt") as ifd:
 
 
 
-    for row in  data_dictionary_list:
+    for x in random_numbers:  
+        row = data_dictionary_list[x]
         new_json_row = {}
 
         
@@ -222,29 +213,14 @@ with open(args.data, "rt") as ifd:
                     # Add the number of times this word appeared in the subdocument to the topic's count for the group.
                       if group_value  < args.cutoff_date and group_value > args.start_date: 
                           groupwise_topic_counts[group][topic] = groupwise_topic_counts[group].get(topic, 0) + subdocument_bow_lookup[word_id]
-                          if row["subjectSearched"] == "Minstrel shows":
-                              minstrel_topic_counts[group] = minstrel_topic_counts.get(group, {})
-                              minstrel_topic_counts[group][topic] = minstrel_topic_counts[group].get(topic,0) + subdocument_bow_lookup[word_id]
-                         # else:
-                          #    groupwise_topic_counts[group][topic] = groupwise_topic_counts[group].get(topic, 0) + subdocument_bow_lookup[word_id]
+                        
                           
                   else:
                       counter = counter + 1
                       lost_words.append(word)
         else:
             pub_date_lost = pub_date_lost + 1 
-with open(args.json_out, "wt") as out_thing:
-  for line in output_json_l:
-      out_thing.write(json.dumps(line))
 
-counter = str(counter)
-with open("work/lost_words{}topics{}counts.txt".format(no_topics, args.group_resolution), "wt") as rt:
-    rt.write("this is the lost words counter")
-    rt.write(counter)
-    rt.write("this is the number of documents without dates")
-    rt.write(str(pub_date_lost))
-    for word in lost_words:
-         rt.write(str(word))
 
 # Save the counts to a file in the "JSON" format.  The 'indent=4' argument makes it a lot easier
 # for a human to read the resulting file directly.
@@ -257,11 +233,4 @@ with open(args.counts, "wt") as ofd:
         )
     )
     
-with open(args.minstrel_counts, "wt") as obj:
-        obj.write(
-        json.dumps(
-            [(k, v) for k, v in sorted(minstrel_topic_counts.items()) if len(v) > 0],
-            indent=4
-        )
-    )
 
