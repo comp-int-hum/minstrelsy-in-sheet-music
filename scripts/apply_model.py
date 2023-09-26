@@ -37,50 +37,10 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--counts",
-    dest="counts",
-    required=True,
-    help="Counts output file."
-)
-
-parser.add_argument(
-    "--minstrel_counts",
-    dest="minstrel_counts",
-    required=True,
-    help="Minstrel Counts  output file."
-)
-
-
-parser.add_argument(
     "--json_out",
     dest="json_out",
     required=True,
     help="Counts output file."
-)
-
-
-parser.add_argument(
-    "--group_resolution",
-    dest="group_resolution",    
-    default=10,
-    type=int,
-    help="The size of each group (e.g. number of years, or whatever units 'group_field' uses)."
-)
-
-parser.add_argument(
-    "--date_cutoff",
-    dest="cutoff_date",
-    default=1930,
-    type=int,
-    help="final date counted for groups"
-)
-
-parser.add_argument(
-    "--date_start",
-    dest="start_date",
-    default=1800,
-    type=int,
-    help="final date counted for groups"
 )
 
 parser.add_argument(
@@ -99,13 +59,9 @@ no_topics = args.topic
 # For each "group", we'll collect the number of times each topic
 # occurs.
 groupwise_topic_counts = {}
-minstrel_topic_counts={}
 data_dictionary_list = []
 group_names = {}
 output_json_l = []
-lost_words = []
-pub_date_lost = 0
-counter = 0 
 # Read in the model that was previously trained and serialized.
 with open(args.model, "rb") as ifd:
     model = pickle.loads(ifd.read())
@@ -119,14 +75,14 @@ with open(args.data, "rt") as ifd:
 
 
 
-    for row in  data_dictionary_list:
-        new_json_row = {}
+for row in  data_dictionary_list:
+    new_json_row = {}
 
         
-        # We want to prepare the data the same way we prepared the data that
-        # trained the model (there may be situations where we'd do something
-        # different, but only with a particularly good reason!).
-        tokens = gpp.split_on_space(
+    # We want to prepare the data the same way we prepared the data that
+    # trained the model (there may be situations where we'd do something
+    # different, but only with a particularly good reason!).
+    tokens = gpp.split_on_space(
             gpp.strip_short(
                 gpp.remove_stopwords(
                     gpp.strip_non_alphanum(
@@ -135,133 +91,84 @@ with open(args.data, "rt") as ifd:
                 ),
                 minsize=args.minimum_word_length
             )
-           )
+    )
         
         
           
           
 
-            # Turn the subdocument tokens into integers and count them, using the
-            # trained model (so it employs the same mapping as it was trained with).
-    
-        #subdocument_bow = dicti.doc2bow(tokens)
-        
+    # Turn the subdocument tokens into integers and count them, using the
+    # trained model (so it employs the same mapping as it was trained with).
           
            
-        subdocument_bow = model.id2word.doc2bow(tokens)
-           
-            # It will be useful to have the "bag-of-words" counts as a dictionary, too.
-        subdocument_bow_lookup = dict(subdocument_bow)
+    subdocument_bow = model.id2word.doc2bow(tokens)
+        
+    # It will be useful to have the "bag-of-words" counts as a dictionary, too.
+    subdocument_bow_lookup = dict(subdocument_bow)
         
         
         
-        doc_topic, test , labeled_subdocument = model.get_document_topics(
-                subdocument_bow,
-                per_word_topics=True,minimum_phi_value = 0.0 
-            )
-        labeled_word_list = []
-        topic_list = []
-        for word in labeled_subdocument:
-     #       print("this is the phi output per word")
-      #      print(word)
-            english_word = model.id2word.get(word[0])
-            #labeled_word_list.append([english_word,word])
-            word_id = word[0]
-            non_float_topics_list = []
+    doc_topic, test , labeled_subdocument = model.get_document_topics(
+        subdocument_bow,
+        per_word_topics=True,minimum_phi_value = 0.0 
+        )
+    labeled_word_list = []
+    topic_list = []
+    for word in labeled_subdocument:
+        #       print("this is the phi output per word")
+        #      print(word)
+        english_word = model.id2word.get(word[0])
+        #labeled_word_list.append([english_word,word])
+        word_id = word[0]
+        non_float_topics_list = []
+                
             
+        for topic_prob in word[1]:
+            new = topic_prob[0]
+            no_float = (float(topic_prob[1]))
+            new_t = [new,no_float]
+            non_float_topics_list.append(new_t)
+        labeled_word_list.append([english_word,word_id,non_float_topics_list])
+    for topic in doc_topic:
+        new_t = topic[:1] + (float(topic[1]),)
+        topic_list.append(new_t)
             
+    row["topics_for_word_phi"] = labeled_word_list
+    row["document_topics"] = topic_list
+    row["topics_for_word"] = test
+    row["sub_doc_bow_dict"] = subdocument_bow_lookup
+    output_json_l.append(row)
             
-            
-            for topic_prob in word[1]:
-                new = topic_prob[0]
-                no_float = (float(topic_prob[1]))
-                new_t = [new,no_float]
-                non_float_topics_list.append(new_t)
-            labeled_word_list.append([english_word,word_id,non_float_topics_list])
-        for topic in doc_topic:
-            new_t = topic[:1] + (float(topic[1]),)
-            topic_list.append(new_t)
-            
-        new_json_row["topics_for_word_phi"] = labeled_word_list
-        new_json_row["document_topics"] = topic_list
-        new_json_row["topics_for_word"] = test 
-        new_json_row["levy_pid"] = row['levy_pid']
-        output_json_l.append(new_json_row)
-        row["topics_for_word_phi"] = labeled_word_list
-        
-    
-   
-        if row["pub_date"].isdigit():                                                                                                                                
-              group_value = int(row["pub_date"])
-              group = group_value - (group_value % args.group_resolution)
-              groupwise_topic_counts[group] = groupwise_topic_counts.get(group, {})  
-              document_topics_by_word = row["topics_for_word_phi"]
-              for word in document_topics_by_word:
-                  #print("this is a list of the actual word followed by its word_id and the topics responsible for the word in this document")
-            #      print("this is the full doc_tops_by_word_entry")
-             #     print(word)
-              #    print("this is the english word")
-               #   print(word[0])
-                #  print("this is the word_id")
-                #  print(word[1])
-                  word_id = word[1]
-                  #word_id = word_id[0]
-                  topics = word[2]
-                 # print(topics)
-                  if len(topics) > 0: 
-                      topic = max(topics, key = lambda x: x[1])
-                      topic = topic[0]
-                  #print("this is the english word")
-                  #print(topic)
-                  #print("this is a list of the top topic")
-                  #print(topic)
-                  #if len(topic) > 0:
-                   #   topic = topic[0]
 
-                    
-                    # Add the number of times this word appeared in the subdocument to the topic's count for the group.
-                      if group_value  < args.cutoff_date and group_value > args.start_date: 
-                          groupwise_topic_counts[group][topic] = groupwise_topic_counts[group].get(topic, 0) + subdocument_bow_lookup[word_id]
-                          if row["subjectSearched"] == "Minstrel shows":
-                              minstrel_topic_counts[group] = minstrel_topic_counts.get(group, {})
-                              minstrel_topic_counts[group][topic] = minstrel_topic_counts[group].get(topic,0) + subdocument_bow_lookup[word_id]
-                         # else:
-                          #    groupwise_topic_counts[group][topic] = groupwise_topic_counts[group].get(topic, 0) + subdocument_bow_lookup[word_id]
-                          
-                  else:
-                      counter = counter + 1
-                      lost_words.append(word)
-        else:
-            pub_date_lost = pub_date_lost + 1 
 with open(args.json_out, "wt") as out_thing:
   for line in output_json_l:
-      out_thing.write(json.dumps(line))
+      out_thing.write(json.dumps(line) + "\n")
 
-counter = str(counter)
-with open("work/lost_words{}topics{}counts.txt".format(no_topics, args.group_resolution), "wt") as rt:
-    rt.write("this is the lost words counter")
-    rt.write(counter)
-    rt.write("this is the number of documents without dates")
-    rt.write(str(pub_date_lost))
-    for word in lost_words:
-         rt.write(str(word))
 
-# Save the counts to a file in the "JSON" format.  The 'indent=4' argument makes it a lot easier
-# for a human to read the resulting file directly.
-with open(args.counts, "wt") as ofd:
+
+
+
+
+
+
+
+
+
+
+
   
-    ofd.write(
-        json.dumps(
-            [(k, v) for k, v in sorted(groupwise_topic_counts.items()) if len(v) > 0],
-            indent=4
-        )
-    )
+
+
+
+
+
+
     
-with open(args.minstrel_counts, "wt") as obj:
-        obj.write(
-        json.dumps(
-            [(k, v) for k, v in sorted(minstrel_topic_counts.items()) if len(v) > 0],
-            indent=4
-        )
-    )
+
+
+
+
+
+
+
 
