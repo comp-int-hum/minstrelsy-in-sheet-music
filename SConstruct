@@ -48,7 +48,7 @@ env = Environment(
 	"GroupData" : Builder(action="python scripts/group_data.py --data ${SOURCES[0]} --group_resolution ${GROUP_RESOLUTION} --counts ${TARGETS[0]} --lost_words ${LOST_WORDS} --lost_words_check ${LOST_WORDS_CHECK} --sub_category ${SUB_CATEGORY} --seed ${SEED}"),
 	"InspectModel" : Builder (action = "python scripts/inspect_model.py --counts ${SOURCES[0]} --figure ${TARGETS[0]} --model ${MODEL}"),
 	"CalculateVariance" : Builder (action = "python scripts/calculate_variance.py --counts ${SOURCES[0]} --output ${TARGETS[0]}"),
-	"CondenseJson" : Builder ( action= "python scripts/condense_json.py --output ${TARGETS[0]} --input ${SOURCES}")
+	"CondenseJson" : Builder ( action= "python scripts/condense_json.py --output ${TARGETS} --input ${SOURCES}")
 	
 }
 )
@@ -100,17 +100,33 @@ for set in full_set:
     full_set_variance_list.append([env.CalculateVariance("work/variance_{}_resolution_{}_topic_no.json".format(set[1],set[0][0][0]), set[2]), set])
     csv_output_list.append("work/variance_{}_resolution_{}_topic_no.json".format(set[1],set[0][0][0]))
 minstrel_set_variance_list = []
-for set in minstrel_set_variance_list:
+for set in minstrel_set:
     minstrel_set_variance_list.append([env.CalculateVariance("work/minstrel_variance_{}_resolution_{}_topic_no.json".format(set[1],set[0][0][0]), set[2]), set])
     csv_output_list.append("work/minstrel_variance_{}_resolution_{}_topic_no.json".format(set[1],set[0][0][0]))
+print(minstrel_set)
+print("this is the minstrel variance list")    
+print(minstrel_set_variance_list)
+print(csv_output_list)
+
+csv_name_list = []
+
+for topic_no in env["NUMBERS_OF_TOPICS"]:
+    for resolution in env["GROUP_RESOLUTIONS"]:
+    	csv_name_list.append("variance_csv_{}_topics_{}_resolution.csv".format(topic_no,resolution))
+
+csv_output = env.CondenseJson(csv_name_list, csv_output_list) 
 
 
-csv_output = env.CondenseJson("work/test_json_condense.json", csv_output_list) 
+graph = []
+#entry format [ [[number, trained model], applied model], resolution, groupdata)
+# [  [ [5, [<SCons.Node.FS.File object at 0x1b844a0>]], [<SCons.Node.FS.File object at 0x1b85940>]], 5, [<SCons.Node.FS.File object at 0x1f07cd0>]]
 
-#for result in results:
- #   for resolution in env["GROUP_RESOLUTIONS"]:
-  #  	output.append([result,env.InspectModel("work/graph_with_{}_resolution_{}_topics.png".format(result[0],result[1][0]), "work/counts_with_{}_resolution_{}_topics".fo#rmat(result[0], result[1][0]), MODEL = result[1][1])])
- #   minstrel_output.append([results, env.InspectModel("work/graph_of_minstrel_texts_with_{}_resolution_{}_topics.png".format(result[0],result[1][0]), "work/minstrel_coun#ts_with_{}_resolution_{}_topics".format(result[0], result[1][0]), MODEL = result[1][1])])
+for entry in full_set:
+    print(entry)
+    graph.append([entry,env.InspectModel("work/graph_with_{}_resolution_{}_topics.png".format(entry[1],entry[0][0][0]), entry[2], MODEL = entry[0][0][1])])
+
+for entry in minstrel_set:
+    graph.append([results, env.InspectModel("work/graph_of_minstrel_texts_with_{}_resolution_{}_topics.png".format(entry[1],entry[0][0][0]), entry[2], MODEL = entry[0][0][1])])
 
 variance = []
 

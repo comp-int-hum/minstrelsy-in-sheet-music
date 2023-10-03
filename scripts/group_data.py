@@ -82,9 +82,13 @@ lost_words = []
 groupwise_topic_counts = {}
 args = parser.parse_args()
 sub_cat = args.sub_category
-if len(sub_cat) > 0: 
+print(sub_cat)
+if len(sub_cat) > 0:
+    print("length greater than zero")
     dict_key = sub_cat[0]
-    desired_value = sub_cat[1] + sub_cat[2]
+    print(dict_key)
+    desired_value = sub_cat[1] + " " + sub_cat[2]
+    print(desired_value)
 data_dictionary_list = []
 
 seed = args.seed
@@ -100,10 +104,12 @@ if len(seed) > 0:
     data_dictionary_list = random.sample(data_dictionary_list, 2000)
 
 if len(sub_cat) > 0:
+    print("sub_cat true")
     new_list = []
     for row in data_dictionary_list: 
         if row[dict_key] == desired_value:
             new_list.append(row)
+    print(new_list)        
     data_dictionary_list = new_list 
     
 for row in data_dictionary_list: 
