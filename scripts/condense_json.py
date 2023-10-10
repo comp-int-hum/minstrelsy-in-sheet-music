@@ -25,6 +25,12 @@ parser.add_argument(
     help="Counts output file."
 )
 
+parser.add_argument(
+    "--json_output",
+    dest="json_output",
+    help="json output file."
+)
+
 
 
 args = parser.parse_args()
@@ -46,12 +52,18 @@ for x in args.input_file:
     with open(x, "r") as json_file:
         variance = json.load(json_file)
         variance_dict = {}
+
         variance_dict["overall_variance_by_topic"] = variance["overall_variance_by_topic"]
-        variance_dict["overall_variance"] = variance["overall_variance"]
+        #variance_dict["overall_variance"] = variance["overall_variance"]
         variance_dict["seed"] = seed
         variance_dict["name"] = x    
+        
         sorted_results[topic_no][resolution].append(variance_dict)
 
+
+
+with open(args.json_output, "w") as outfile:
+    json.dump(sorted_results, outfile)
 
 #dictionary of topic numbers and resolution dictionaries 
 for topic_no, resolutions in sorted_results.items():

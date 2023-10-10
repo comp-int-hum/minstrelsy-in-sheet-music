@@ -28,7 +28,6 @@ parser.add_argument(
     help="number of topics"
 )
 
-
 parser.add_argument(
     "--data",
     dest="data",
@@ -92,10 +91,7 @@ for row in  data_dictionary_list:
                 minsize=args.minimum_word_length
             )
     )
-        
-        
-          
-          
+                  
 
     # Turn the subdocument tokens into integers and count them, using the
     # trained model (so it employs the same mapping as it was trained with).
@@ -106,14 +102,15 @@ for row in  data_dictionary_list:
     # It will be useful to have the "bag-of-words" counts as a dictionary, too.
     subdocument_bow_lookup = dict(subdocument_bow)
         
+    
         
-        
-    doc_topic, test , labeled_subdocument = model.get_document_topics(
+    doc_topic, teest , labeled_subdocument = model.get_document_topics(
         subdocument_bow,
         per_word_topics=True,minimum_phi_value = 0.0 
         )
     labeled_word_list = []
     topic_list = []
+    denathor.append(topic_list)
     for word in labeled_subdocument:
         #       print("this is the phi output per word")
         #      print(word)

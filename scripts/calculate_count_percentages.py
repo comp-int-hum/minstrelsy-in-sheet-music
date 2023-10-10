@@ -21,11 +21,11 @@ args = parser.parse_args()
 
 def compute_variances_and_organize(input_file):
     # Load the data
+    results_list = []
     with open(input_file, 'r') as f:
         data_list = json.load(f)
-        results_list = []
-        for entry in data_list: 
-            data = {item[0]: item[1] for item in entry}
+        for thing in data_list: 
+            data = {item[0]: item[1] for item in thing}
 
             # Identify all unique topics
             all_topics = set()
@@ -36,31 +36,26 @@ def compute_variances_and_organize(input_file):
                 # Compute the average proportion of each topic across the entire dataset
                 total_word_counts = sum([sum(year_data.values()) for year_data in data.values()])
                 avg_proportions = {topic: sum([year_data.get(topic, 0) for year_data in data.values()]) / total_word_counts for topic in all_topics}
-
-                # Compute the overall variance for each topic across the dataset
-                overall_variance_by_topic = {}
+    
+                overall_proportations_by_topic = {}
             for topic in all_topics:
                 proportions = [data[year].get(topic, 0) / sum(data[year].values()) for year in data]
-                overall_variance_by_topic[topic] = np.var(proportions)
+                overall_proportions_by_topic[topic] = proportions
 
-                # Compute the overall variance of the dataset
+                    # Compute the overall variance of the dataset
                 all_proportions = []
-            for year in data:
-                year_proportions = [data[year].get(topic, 0) / sum(data[year].values()) for topic in all_topics]
-                all_proportions.append(year_proportions)
-                overall_variance = np.mean(np.var(all_proportions, axis=0))
 
-                # Organize results into desired format
+                    # Organize results into desired format
                 results = {
-                    # "variance_by_year": variance_by_year,
-                    "overall_variance_by_topic": overall_variance_by_topic,
-                    "overall_variance": overall_variance
+                        # "variance_by_year": variance_by_year,
+                    "overall_variance_by_topic": overall_proportions_by_topic,
                 }
             results_list.append(results)
     return results_list
-        
 
-results_list = compute_variances_and_organize(args.data)
+# Usage:
+
+results = compute_variances_and_organize(args.data)
 
 # If you want to save the results to a JSON file:
 
