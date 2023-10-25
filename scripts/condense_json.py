@@ -41,29 +41,23 @@ for x in args.input_file:
     
     type_dict = {}
     res = [int(i) for i in re.findall(r'\d+', x)]
-    
-    if len(res) > 2:
-        seed = res[0]
-        resolution = res[1]
-        topic_no = res[2]
-    else:
-        resolution = res[0]
-        topic_no = res[1]
+    resolution = res[0]
+    topic_no = res[1]
+    print("this is x")
+    print(x)    
     with open(x, "r") as json_file:
-        variance = json.load(json_file)
-        variance_dict = {}
-
-        variance_dict["overall_variance_by_topic"] = variance["overall_variance_by_topic"]
-        #variance_dict["overall_variance"] = variance["overall_variance"]
-        variance_dict["seed"] = seed
-        variance_dict["name"] = x    
+        variance_list = json.load(json_file)
+        for thing in variance_list:
+            variance_dict = {}
+            variance_dict["overall_variance_by_topic"] = thing["overall_variance_by_topic"]
+            variance_dict["name"] = x    
         
-        sorted_results[topic_no][resolution].append(variance_dict)
+            sorted_results[topic_no][resolution].append(variance_dict)
 
 
 
 with open(args.json_output, "w") as outfile:
-    json.dump(sorted_results, outfile)
+    json.dump(sorted_results, outfile, indent = 4)
 
 #dictionary of topic numbers and resolution dictionaries 
 for topic_no, resolutions in sorted_results.items():
@@ -83,47 +77,23 @@ for topic_no, resolutions in sorted_results.items():
             #print(name)
             sorted_topic_dict.insert(0, name)
             csv_list.append([sorted_topic_dict,entry])
-            output = "work/variance_csv_{}_topics_{}_resolution.csv".format(topic_no,resolution_no)
+            output = "work/1800-1870/variance_csv_{}_topics_{}_resolution.csv".format(topic_no,resolution_no)
             
         with open(output, 'w', newline='') as csvfile:
-            list_format = csv_list[0]
-            name = list_format[1]
-            name = name["name"]
-            name = ("name", name)
-            fieldnames = list_format[0]
-            #fieldnames.insert(0, name)
-            fieldnames = dict(fieldnames)
-            fieldnames = fieldnames.keys()
+            csvfile.write("")
+       #     list_format = csv_list[0]
+        #    name = list_format[1]
+         #   name = name["name"]
+          #  name = ("name", name)
+          #  fieldnames = list_format[0]
+          #  #fieldnames.insert(0, name)
+           # fieldnames = dict(fieldnames)
+           # fieldnames = fieldnames.keys()
      #       print(fieldnames)
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            writer.writeheader()
-            for a_list in csv_list:
+           # writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+           # writer.writeheader()
+           # for a_list in csv_list:
                 #print(a_list)
-                row_dict = dict(a_list[0])
+            #    row_dict = dict(a_list[0])
       #          print(row_dict)
-                writer.writerow(row_dict)    
-                    
-                    
-                
-        
-
-
-
-
-
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+             #   writer.writerow(row_dict) 

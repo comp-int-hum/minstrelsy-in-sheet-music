@@ -104,13 +104,12 @@ for row in  data_dictionary_list:
         
     
         
-    doc_topic, teest , labeled_subdocument = model.get_document_topics(
+    doc_topic, test , labeled_subdocument = model.get_document_topics(
         subdocument_bow,
         per_word_topics=True,minimum_phi_value = 0.0 
         )
     labeled_word_list = []
     topic_list = []
-    denathor.append(topic_list)
     for word in labeled_subdocument:
         #       print("this is the phi output per word")
         #      print(word)
@@ -129,7 +128,7 @@ for row in  data_dictionary_list:
     for topic in doc_topic:
         new_t = topic[:1] + (float(topic[1]),)
         topic_list.append(new_t)
-            
+
     row["topics_for_word_phi"] = labeled_word_list
     row["document_topics"] = topic_list
     row["topics_for_word"] = test

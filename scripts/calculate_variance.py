@@ -19,10 +19,12 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-def compute_variances_and_organize(input_file):
+def compute_variances_single_line(input_file):
     # Load the data
     with open(input_file, 'r') as f:
-        data_list = json.load(f)
+        data_list = []
+        for line in f:
+            data_list.append(json.loads(f)
         results_list = []
         for entry in data_list: 
             data = {item[0]: item[1] for item in entry}

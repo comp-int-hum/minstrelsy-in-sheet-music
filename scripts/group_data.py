@@ -23,6 +23,7 @@ parser.add_argument(
 parser.add_argument(
     "--seed",
     dest="seed",
+    type = int, 
     help="Counts output file."
 )
 
@@ -36,14 +37,13 @@ parser.add_argument(
 parser.add_argument(
     "--reverse_sub_category",
     dest = "minus_sub_cat",
-    default = False,
-    type = bool,
+    default = 0,
+    type = int, 
     help = "makes subcategory subtract that subcategory from the general population")
 
 parser.add_argument(
     "--output_file",
     dest = "output_file",
-    nargs = "+",
     help = "names out output files")
 
 
@@ -75,18 +75,28 @@ if abs(args.random_on) > 0:
         random.seed(a = args.seed)
     for x in range(args.random_on):
         dictionary_list = random.sample(data_dictionary_list, 2000)
-        output_dictionary_lists.append(data_dictionary_list)    
+        rep_dict_list = []
+        for sub_dict in dictionary_list:
+            rep_dict = {}
+            rep_dict["pub_date"] = sub_dict["pub_date"]
+            rep_dict["topics_for_word_phi"] = sub_dict["topics_for_word_phi"]
+            rep_dict["levy_pid"] = sub_dict["levy_pid"]
+            rep_dict["sub_doc_bow_dict"] = sub_dict["sub_doc_bow_dict"]
+            rep_dict_list.append(rep_dict)
+
+        output_dictionary_list.append(rep_dict_list)
+        print("appended dictionary")
 elif len(sub_cat) > 0:
         #if you only want things with the subcateogry 
-        if args.minus_sub_cat == False: 
+        if args.minus_sub_cat == 0: 
             print("sub_cat true")
             new_list = []
             for row in data_dictionary_list: 
                 if row[dict_key] == desired_value:
                     new_list.append(row)
-                    print(new_list)        
-                    data_dictionary_list = new_list
-                    output_dictionary_list.append(data_dictionary_list)
+            #        print(new_list)        
+            data_dictionary_list = new_list
+            output_dictionary_list.append(data_dictionary_list)
         else:
             #the reverse 
             print("reverse_sub_cat_true")
@@ -94,16 +104,10 @@ elif len(sub_cat) > 0:
             for row in data_dictionary_list:
                 if row[dict_key] != desired_value:
                     new_list.append(row)
-                    print(new_list)
-                    data_dictionary_list = new_list
-                    output_dictionary_list.append(data_dictionary_list)
+                #    print(new_list)
+            data_dictionary_list = new_list
+            output_dictionary_list.append(data_dictionary_list)
                     
-with open(args.output_file, "wt") as ofd:
-    for entry in output_dictionary_list:
-        print(entry)
-        ofd.write(
-            json.dumps(entry, 
-            indent=4
-        )
-    )
+with open(args.output_file, "w") as ofd:
+        json.dump(output_dictionary_list, ofd)
 
