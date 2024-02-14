@@ -7,7 +7,7 @@ import numpy as np
 from matplotlib.figure import Figure
 from matplotlib.table import Table, table
 import matplotlib.pyplot as plt
-
+import csv 
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -60,6 +60,13 @@ parser.add_argument(
     action="append",
     default=[]
 )
+
+parser.add_argument(
+    "--out_file",
+    dest="out_file",
+    help=" out put file"
+)
+
 args = parser.parse_args()
 
 # Read in the topic model (really only necessary to know how to map between 
@@ -74,19 +81,30 @@ with open(args.counts, "rt") as ifd:
     groupwise_counts = json.loads(ifd.read())
 
 # Create and fill up a matrix of counts (the rows are topics, the columns are groups).
-matrix_of_counts = np.zeros(shape=(model.num_topics, len(groupwise_counts))) 
-groups = []
-for group_number, group in enumerate(groupwise_counts):
-    group_name = group[0]
-    topic_counts = group[1]
-    groups.append(group_name)
-    for topic, count in topic_counts.items():
-        topic_number = int(topic)
-        matrix_of_counts[topic_number, group_number] = count
+#matrix_of_counts = np.zeros(shape=(model.num_topics, len(groupwise_counts))) 
+#groups = []
+#for group_number, group in enumerate(groupwise_counts):
+ #   group_name = group[0]
+  #  topic_counts = group[1]
+   # groups.append(group_name)
+    #for topic, count in topic_counts.items():
+     #   topic_number = int(topic)
+      #  matrix_of_counts[topic_number, group_number] = count
+
 
 # Divide each group's topic-count by the total number of counts for the group
 # (i.e. normalize the counts to a distribution).
-matrix_of_counts = (matrix_of_counts / matrix_of_counts.sum(0))
+#matrix_of_counts = (matrix_of_counts / matrix_of_counts.sum(0))
+
+#with open (args.out_file, "w") as out_file:
+ #    writer = csv.writer(out_file)
+  #   for i in range(20):
+   #      local_row = matrix_of_counts[i,:].tolist()
+    #     print("this is a local row")
+     #    print(local_row)
+      #   writer.writerow(local_row)
+        
+
 
 # Plot the proportion of each topic's occurrence for each group.
 #
@@ -111,14 +129,14 @@ ax.stackplot(
     labels=list(reversed([topic_name_lookup.get(i + 1, i + 1) for i in range(model.num_topics)]))
 )
 
-ax.set_title(args.title, fontsize=25, fontweight="bold")
-ax.set_xlabel(args.xlabel, fontsize=20)
-ax.set_ylabel(args.ylabel, fontsize=20)
+ax.set_title(args.title, fontsize=80, fontweight="bold")
+ax.set_xlabel(args.xlabel, fontsize=80)
+ax.set_ylabel(args.ylabel, fontsize=80)
 ax.set_yticks([], [])
 ax.legend(
     reverse=True,
     loc='upper left',
-    fontsize=15,
+    fontsize=60,
     title=args.legend
 )
 
@@ -128,45 +146,45 @@ fp = {
     "weight" : "bold"
 }
 num_words = 10
-tbl = Table(ax2)
-tbl.auto_set_font_size(False)
-width = .1
-height = .05
+#tbl = Table(ax2)
+#tbl.auto_set_font_size(False)
+#width = .1
+#height = .05
     
-for topic_number, words in model.show_topics(model.num_topics, 10, formatted=False):
-    bg = "lightgrey" if topic_number % 2 == 0 else "white"
-    tbl.add_cell(
-        2*topic_number,
-        0,
-        text=topic_name_lookup.get(topic_number + 1, "#{}".format(topic_number + 1)),
-        width=0.04,
-        height=height,
-        edgecolor="white",
-        facecolor="white",
-        fontproperties=fp
-    )
+#for topic_number, words in model.show_topics(model.num_topics, 10, formatted=False):
+ #   bg = "lightgrey" if topic_number % 2 == 0 else "white"
+  #  tbl.add_cell(
+   #     2*topic_number,
+    #    0,
+     #   text=topic_name_lookup.get(topic_number + 1, "#{}".format(topic_number + 1)),
+      #  width=0.04,
+#        height=height,
+#        edgecolor="white",
+#        facecolor="white",
+#        fontproperties=fp
+ #   )
 
-    for word_number, word in enumerate(words):
-        tbl.add_cell(
-            2*topic_number,
-            word_number + 1,
-            text="{}".format(word[0]),
-            width=width,
-            height=height,
-            edgecolor=bg,
-            facecolor=bg,
-            fontproperties={"size" : 20, "weight" : "bold"}
-        )
-        tbl.add_cell(
-            2*topic_number + 1,
-            word_number + 1,
-            text="{:03.3f}".format(word[1]),
-            width=width,
-            height=height,
-            edgecolor=bg,
-            facecolor=bg,
-            fontproperties={"size" : 15}
-        )
-ax2.add_table(tbl)
+  #  for word_number, word in enumerate(words):
+   #     tbl.add_cell(
+    #        2*topic_number,
+    #        word_number + 1,
+    #        text="{}".format(word[0]),
+     #       width=width,
+      #      height=height,
+  #          edgecolor=bg,
+  #          facecolor=bg,
+  #          fontproperties={"size" : 20, "weight" : "bold"}
+   #     )
+   #     tbl.add_cell(
+    #        2*topic_number + 1,
+     #       word_number + 1,
+      #      text="{:03.3f}".format(word[1]),
+       #     width=width,
+        #    height=height,
+         #   edgecolor=bg,
+      #      facecolor=bg,
+      #      fontproperties={"size" : 15}
+      #  )
+#ax2.add_table(tbl)
 
 fig.savefig(args.figure)

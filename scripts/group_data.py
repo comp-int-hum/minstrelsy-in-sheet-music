@@ -35,6 +35,19 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    "--sub_category_search",
+    dest="sub_category_search",
+    help="allows you to search out a subcategory -- requires two values, the first is the dictionary key, the second is the desired value."
+)
+
+parser.add_argument(
+    "--sub_category_search_value",
+    dest="sub_category_search_value",
+    help="allows you to search out a subcategory -- requires two values, the first is the dictionary key, the second is the desired value."
+)
+
+
+parser.add_argument(
     "--reverse_sub_category",
     dest = "minus_sub_cat",
     default = 0,
@@ -107,7 +120,24 @@ elif len(sub_cat) > 0:
                 #    print(new_list)
             data_dictionary_list = new_list
             output_dictionary_list.append(data_dictionary_list)
-                    
+
+#allows you to search a sub_category for specific values. 
+            
+elif args.sub_category_search != "None":
+    values = args.sub_category_search_value
+    for entry in data_dictionary_list:
+        #print(args.sub_category_search)
+        #print(args.sub_category_search_value)
+        #print(entry[args.sub_category_search])
+        #if args.sub_category_search_value in entry[args.sub_category_search]:
+         #   output_dictionary_list.append(entry)
+        #composers = ["J.W. Johnson", "Bob Cole", "Ernest Hogan", "Will Marion Cook", "Gussie L. Davis", "Williams and Walker", "Chris Smith"]
+
+        if any(element in entry[args.sub_category_search] for element in values):
+            print(entry)
+            output_dictionary_list.append(entry)    
+                
+print(len(output_dictionary_list))
 with open(args.output_file, "w") as ofd:
         json.dump(output_dictionary_list, ofd)
 
