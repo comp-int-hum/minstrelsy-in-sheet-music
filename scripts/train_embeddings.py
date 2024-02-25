@@ -30,8 +30,14 @@ if __name__ == "__main__":
     with open(args.input, "rt") as ifd:
         for entry in ifd:
             j = json.loads(entry)
-            sentences += j["full_text"]
-
+            local_sentences = j["full_text"].split()
+            sentences.append(local_sentences)
+            #print(sentences)
+            #sentences. j["full_text"]
+    #for x in sentences:
+     #   print(x)
+      #  for y in x:
+       #     print(y)
     model = Word2Vec(
         sentences=sentences,
         vector_size=args.embedding_size,
