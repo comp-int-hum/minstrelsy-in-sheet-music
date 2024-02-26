@@ -424,7 +424,7 @@ if __name__ == "__main__":
         device=args.device,
         adapt_embeddings=False
     )
-
+    print("initialized model")
     model.to(args.device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.wdecay)
 
