@@ -42,11 +42,13 @@ env = Environment(
     BUILDERS={ 
         "PerformOcr" : Builder(
             action="python scripts/perform_ocr.py --input ${SOURCES[0]} --output ${TARGETS[0]}", chdir = False),
-        "TrainModel" : Builder(
-            action="python scripts/train_model.py --data ${SOURCES[0]}  --output_file ${TARGETS[0]} --topic_num ${NUMBER_OF_TOPICS}", chdir = False            
+	"TrainEmbeddings" : Builder(
+	    action = "python scripts/train_embeddings.py --input ${SOURCES[0]} --output ${TARGETS[0]}"), 
+	   "TrainModel" : Builder(
+            action="python scripts/train_detm.py --embeddings ${SOURCES[0]} --train ${DATA_FILE}  --output ${TARGETS[0]} --num_topics ${NUMBER_OF_TOPICS} --batch_size ${BATCH_SIZE} --min_word_occurrence ${MIN_WORD_OCCURANCE} --max_word_proportion ${MAX_WORD_PROPORTION}",chdir = False            
         ),
         "ApplyModel" : Builder(
-            action="python scripts/apply_model.py --model ${SOURCES[0]} --data ${DATA} --topic_num ${NUMBER_OF_TOPICS} --json_out ${TARGETS[0]}"
+            action="python scripts/apply_detm.py --model ${SOURCES[0]} --input ${DATA_FILE} --output ${TARGETS[0]}"
         ),
 	"GroupData" : Builder(action="python scripts/group_data.py --data ${SOURCES[0]}  --output_file ${TARGETS[0]} --random_on ${RANDOM_ON} --sub_category ${SUB_CAT} --reverse_sub_category ${REVERSE_SUB_CAT} --seed ${SEED} --sub_category_search ${SUB_CATEGORY_SEARCH} --sub_category_search_value ${SUB_CATEGORY_SEARCH_VALUE}"),
 	"CountData" : Builder(action= "python scripts/count_data.py --data ${SOURCES[0]}  --group_resolution ${GROUP_RESOLUTION} --counts ${TARGETS[0]} --lost_words ${LOST_WORDS} --lost_words_check ${LOST_WORDS_CHECK}"),
@@ -72,14 +74,23 @@ if env["EXISTING_JSON"] == False:
 else:
     json_metadata_including_text_ocr = env["EXISTING_JSON_LOCATION"]
 
-for number in env["NUMBERS_OF_TOPICS"]:
-    topic_model_list.append([number, (env.TrainModel("work/model_with_no_{}_topics.bin".format(number),json_metadata_including_text_ocr, NUMBER_OF_TOPICS = number))])
+embeddings_list = []
+embeddings_list.append(env.TrainEmbeddings("work/word_2_vec_embeddings.bin", json_metadata_including_text_ocr))
+
+
+topic_model_list = []
+
+for entry in embeddings_list: 
+    for number in env["NUMBERS_OF_TOPICS"]:
+    	topic_model_list.append([number, (env.TrainModel("work/applied_detm_with_{}_topics.bin".format(number) , entry , DATA_FILE = json_metadata_including_text_ocr, NUMBER_OF_TOPICS = number, BATCH_SIZE = 10, MIN_WORD_OCCURANCE = 8, MAX_WORD_PROPORTION = .7))])
+
 results = []
 
 # model format model [0] = number of topics, model[1] = trained model 
 
 for model in topic_model_list:
-    results.append([ model, (env.ApplyModel("work/levy_json_{}_topics.jsonl".format(model[0]), model[1],  DATA = json_metadata_including_text_ocr, NUMBER_OF_TOPICS = model[0]))])
+    results.append([ model, (env.ApplyModel("work/levy_json_{}_topics.jsonl".format(model[0]), model[1],  DATA_FILE = json_metadata_including_text_ocr))])
+
 
 output = []
 minstrel_output = []
