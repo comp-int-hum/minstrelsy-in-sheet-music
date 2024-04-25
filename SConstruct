@@ -31,7 +31,13 @@ vars.AddVariables(
     ("GROUP_RESOLUTIONS", "", [5, 10, 25]),
     ("CHUNK_SIZE", "", [500]),
     ("EXISTING_JSON", "", True),
-    ("EXISTING_JSON_LOCATION","","/home/sbacker2/git_test/minstrelsy-in-sheet-music/data/json_metadata.jsonl")
+    ("EXISTING_JSON_LOCATION","","/home/sbacker2/projects/minstrelsy_in_sheet_music/minstrelsy-in-sheet-music/data/json_metadata.jsonl"),
+    ("USE_GRID","",1),
+    ("GRID_TYPE","", "slurm"),
+    ("GRID_GPU_COUNT","", 1),
+    ("GRID_MEMORY", "", "64G"),
+    ("GRID_TIME", "", "24:00:00")
+    #("FOLDS", "", 1),
 )    
 # Methods on the environment object are used all over the place, but it mostly serves to
 # manage the variables (see above) and builders (see below).
@@ -92,7 +98,7 @@ for model in topic_model_list:
     results.append([ model, (env.ApplyModel("work/levy_json_{}_topics.jsonl".format(model[0]), model[1],  DATA_FILE = json_metadata_including_text_ocr))])
 
 
-output = []
+xoutput = []
 minstrel_output = []
 #results format [[number, model],apply model]
 
@@ -140,7 +146,7 @@ for result in results:
 	result, resolution])
 
         full_set_numpy_arrays.append(
-	[env.ConstructNumpyArray("work.full_group_data_counts_numpy_array_{}_resolution_topic_no_{}.npy".format(resolution,result[0][0]), result[1], MODEL = result[0][1],
+	[env.ConstructNumpyArray("work/full_group_data_counts_numpy_array_{}_resolution_topic_no_{}.npy".format(resolution,result[0][0]), result[1], MODEL = result[0][1],
         YEAR_BUCKET =resolution, NUMBER = result[0][0]),result, resolution])
 
  	
@@ -168,7 +174,7 @@ for segmentation in selected_segmentation:
 	segmentation, resolution])
 
         selected_segmentation_numpy_arrays.append(
-        [env.ConstructNumpyArray("work.selected_segmentation_numpy_array_{}_resolution_topic_no_{}.npy".format(resolution,result[0][0]), result[1], MODEL = result[0][1], YEAR_BUCKET = resolution, NUMBER = result[0][0]),segmentation[1],
+        [env.ConstructNumpyArray("work/selected_segmentation_numpy_array_{}_resolution_topic_no_{}.npy".format(resolution,result[0][0]), result[1], MODEL = result[0][1], YEAR_BUCKET = resolution, NUMBER = result[0][0]),segmentation[1],
         resolution])
 
 selected_variance_list = []
@@ -202,11 +208,12 @@ for segment in no_minstrel_segmentation:
 
 no_minstrel_variance_list = []
 no_minstrel_percentage_list = []
+#entry = 
 for entry in no_minstrel_counts:
-    no_minstrel_variance_list.append([env.CalculateVariance("work/no_minstrel_variance_list_{}_resolution_{}_topic_no.json".format(entry[2], entry[1][0][0]),entry[0]), entry])
-    variance_name_list.append("work/no_minstrel_variance_list_{}_resolution_{}_topic_no.json".format(entry[2], entry[1][0][0]))
-    no_minstrel_percentage_list.append([env.CalculatePercentages("work/no_minstrel_percentage_list_{}_resolution_{}_topic_no.json".format(entry[2], entry[1][0][0]),entry[0]), entry])
-    percentage_name_list.append("work/no_minstrel_percentage_list_{}_resolution_{}_topic_no.json".format(entry[2], entry[1][0][0]))
+    no_minstrel_variance_list.append([env.CalculateVariance("work/no_minstrel_variance_list_{}_resolution_{}_topic_no.json".format(entry[2], entry[1][1][0][0]),entry[0]), entry])
+    variance_name_list.append("work/no_minstrel_variance_list_{}_resolution_{}_topic_no.json".format(entry[2], entry[1][1][0][0]))
+    no_minstrel_percentage_list.append([env.CalculatePercentages("work/no_minstrel_percentage_list_{}_resolution_{}_topic_no.json".format(entry[2], entry[1][1][0][0]),entry[0]), entry])
+    percentage_name_list.append("work/no_minstrel_percentage_list_{}_resolution_{}_topic_no.json".format(entry[2], entry[1][1][0][0]))
 
 
 #creating name list for resolution

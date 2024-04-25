@@ -190,7 +190,7 @@ if __name__ == "__main__":
                     title = j["title"]
                     author = j["creators_plain"]
                     docs = []
-                    print(j["full_text"])
+                    #print(j["full_text"])
                     full_text_words = j["full_text"].split()
                     for word in full_text_words:
                         #print(full_text_words)
@@ -218,7 +218,7 @@ if __name__ == "__main__":
                 #if i > 100:
                 #    break
                 j = json.loads(line)
-                print(j)
+                #print(j)
                 if j["pub_date"].isdigit() == True: 
                     time = int(j["pub_date"])
                     unique_times.add(time)
@@ -226,10 +226,10 @@ if __name__ == "__main__":
                     author = j["creators_plain"]
                     doc = []
                     full_text_words = j["full_text"].split()
-                    print(full_text_words)
+                    #print(full_text_words)
                     for x in full_text_words: 
                         doc.append(x)
-                    print(doc)
+                    #print(doc)
                     for subdoc_num, subdoc in enumerate(split_doc(doc, args.max_subdoc_length)):
                         utokens = set()
                         total_subdocs += 1
@@ -247,8 +247,8 @@ if __name__ == "__main__":
                                         "author" : j["creators_plain"],
                                         "subdoc_number" : subdoc_num}
                         all_subdocs.append(local_dict)
-                        print("this is the local_dict")
-                        print(local_dict)
+                       # print("this is the local_dict")
+                       # print(local_dict)
                                     
         random.shuffle(all_subdocs)
         train_count = math.ceil(args.train_proportion * len(all_subdocs))
@@ -257,9 +257,9 @@ if __name__ == "__main__":
     else:
         raise Exception("Please specify *either* a single train file or separate train/val files")
 
-    print(data["train"])
-    print(data["val"])
-    print("that was val")
+    #print(data["train"])
+    #print(data["val"])
+    #print("that was val")
     vocab_to_keep = set()
     for t, count in token2subdoccount.items():
         if count >= args.min_word_occurrence and (count / total_subdocs) <= args.max_word_proportion:
@@ -270,9 +270,9 @@ if __name__ == "__main__":
     sorted_times = list(sorted(unique_times))
 
     min_time = args.min_time if args.min_time else (sorted_times[0] - 1)
-    print(min_time)
+    #print(min_time)
     max_time = args.max_time if args.max_time else (sorted_times[-1] + 1)
-    print(max_time)
+    #print(max_time)
     span = max_time - min_time
 
     #min_time = sorted_times[0]
@@ -395,8 +395,8 @@ if __name__ == "__main__":
             #words = list(test_model.key_to_index.keys())
             
             words = list(test_model.wv.key_to_index.keys())
-            print("these are all the words")
-            print(words)
+     #       print("these are all the words")
+      #      print(words)
             
             embeddings = torch.tensor(numpy.array([w2v.wv[id2token[i]] for i in range(len(id2token))]))
             
