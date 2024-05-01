@@ -186,6 +186,7 @@ if __name__ == "__main__":
                 for line in ifd:
                     j = json.loads(line)
                     time = int(j["pub_date"])
+                    
                     unique_times.add(time)
                     title = j["title"]
                     author = j["creators_plain"]
@@ -221,6 +222,8 @@ if __name__ == "__main__":
                 #print(j)
                 if j["pub_date"].isdigit() == True: 
                     time = int(j["pub_date"])
+                    #print("test test test")
+                    #print(time)
                     unique_times.add(time)
                     title = j["title"]
                     author = j["creators_plain"]
@@ -268,7 +271,7 @@ if __name__ == "__main__":
     logger.info("Keeping %d words from a vocabulary of %d", len(vocab_to_keep), len(token2subdoccount))
 
     sorted_times = list(sorted(unique_times))
-
+    #print(sorted_times)
     min_time = args.min_time if args.min_time else (sorted_times[0] - 1)
     #print(min_time)
     max_time = args.max_time if args.max_time else (sorted_times[-1] + 1)

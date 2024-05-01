@@ -77,7 +77,7 @@ for topic_no, resolutions in sorted_results.items():
             #print(name)
             sorted_topic_dict.insert(0, name)
             csv_list.append([sorted_topic_dict,entry])
-            output = "work/1800-1870/variance_csv_{}_topics_{}_resolution.csv".format(topic_no,resolution_no)
+            output = "work/variance_csv_{}_topics_{}_resolution.csv".format(topic_no,resolution_no)
             
         with open(output, 'w', newline='') as csvfile:
             csvfile.write("")

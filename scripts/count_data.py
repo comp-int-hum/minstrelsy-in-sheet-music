@@ -44,20 +44,6 @@ parser.add_argument(
     help="Counts output file."
 )
 
-parser.add_argument(
-    "--lost_words",
-    dest="lost_words",
-    help="Counts skipped words"
-)
-
-parser.add_argument(
-    "--lost_words_check",
-    dest = "lost_words_check",
-    default = False,
-    type = bool,
-    help = "switch for lost words check")
-
-
 
 counter = 0
 pub_date_lost = 0
@@ -83,42 +69,28 @@ with open(args.data, "rt") as ifd:
         groupwise_topic_counts = {}
         for individual_dictionary in collection: 
             local_counter = 0
+            print(individual_dictionary)
         
+           
+            group_value = individual_dictionary["time"]
+            group = group_value - (group_value % args.group_resolution)
+            groupwise_topic_counts[group] = groupwise_topic_counts.get(group, {})
+            document_topics_by_word = individual_dictionary["text"]
+                
         
-            if individual_dictionary["pub_date"].isdigit():
-                group_value = int(individual_dictionary["pub_date"])
-                group = group_value - (group_value % args.group_resolution)
-                groupwise_topic_counts[group] = groupwise_topic_counts.get(group, {})
-                document_topics_by_word = individual_dictionary["topics_for_word_phi"]
-                subdocument_bow_lookup = individual_dictionary["sub_doc_bow_dict"]
-        
-                for word in document_topics_by_word:      
-                    word_id = word[1]
+            for word in document_topics_by_word:      
+                word_text = word[0]
                      
-                    topics = word[2]
+                topic = word[1]
                   
-                    if len(topics) > 0:
-                        topic = max(topics, key = lambda x: x[1])
-                        topic = topic[0]
-                    if group_value  < args.cutoff_date and group_value > args.start_date:
-                        groupwise_topic_counts[group][topic] = groupwise_topic_counts[group].get(topic, 0) + subdocument_bow_lookup[str(word_id)]
-                    else:
-                        local_counter = local_counter + 1
-                        lost_words.append(word)
-            counter = counter + local_counter 
-        #print(groupwise_topic_counts)
-        counts_list.append(groupwise_topic_counts)                
-    #lost words count might not work anymore, coming back to this later. 
-if args.lost_words_check == True:
-    with open(args.lost_words, "wt") as rt:
-        rt.write("this is the lost words counter")
-        rt.write(str(counter))
-        rt.write("this is the number of documents without dates")
-        rt.write(str(pub_date_lost))
-        for word in lost_words:
-            rt.write(str(word))
-print(len(counts_list))
-
+                #if len(topic) > 0:
+                 #   topic = max(topics, key = lambda x: x[1])
+                  #  topic = topic[0]
+                if group_value  < args.cutoff_date and group_value > args.start_date:
+                    groupwise_topic_counts[group][topic] = groupwise_topic_counts[group].get(topic, 0) + 1
+                    
+    counts_list.append(groupwise_topic_counts)                
+    
 #prints out a series of jsonl count objects 
 
 with open(args.counts, "wt") as ofd:

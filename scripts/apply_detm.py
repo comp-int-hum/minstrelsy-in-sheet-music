@@ -123,7 +123,9 @@ if __name__ == "__main__":
                                 "title" : title,
                                 "time" : time,
                                 "window" : window,
-                                "num" : subdoc_num
+                                "num" : subdoc_num,
+                                "pid" : j["levy_pid"],
+                                "subjectSearched" : j["subjectSearched"]
                             }
                         )
             
@@ -183,6 +185,6 @@ if __name__ == "__main__":
                 all_subdocs[i]["text"] = [(tok, lik[token2id[tok]].item()) if tok in token2id else (tok, None) for tok, tid in all_subdocs[i]["text"]]
                 del all_subdocs[i]["counts"]
 
-        with gzip.open(args.output, "wt") as ofd:
+        with open(args.output, "wt") as ofd:
             for sd in all_subdocs:
                 ofd.write(json.dumps(sd) + "\n")

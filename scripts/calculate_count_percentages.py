@@ -69,7 +69,7 @@ def compute_percentages(input_data):
         
         
 
-results = compute_percentages(args.data)
+results = compute_percentages(input_data)
 
 # If you want to save the results to a JSON file:
 

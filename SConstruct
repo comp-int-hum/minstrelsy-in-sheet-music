@@ -28,15 +28,16 @@ vars = Variables("custom.py")
 vars.AddVariables( 
     ("NUMBERS_OF_TOPICS", "", [5,10,15,20,30]),
     ("DATA_LOCATION", "", "/home/sbacker2/minstrelsy-in-sheet-music/data/levy_zip.zip"),
-    ("GROUP_RESOLUTIONS", "", [5, 10, 25]),
     ("CHUNK_SIZE", "", [500]),
     ("EXISTING_JSON", "", True),
     ("EXISTING_JSON_LOCATION","","/home/sbacker2/projects/minstrelsy_in_sheet_music/minstrelsy-in-sheet-music/data/json_metadata.jsonl"),
     ("USE_GRID","",1),
+    ("RANDOM_LENGTH","",2000),
     ("GRID_TYPE","", "slurm"),
     ("GRID_GPU_COUNT","", 1),
     ("GRID_MEMORY", "", "64G"),
-    ("GRID_TIME", "", "24:00:00")
+    ("GRID_TIME", "", "24:00:00"),
+    ("WINDOW_SIZE","", [20])
     #("FOLDS", "", 1),
 )    
 # Methods on the environment object are used all over the place, but it mostly serves to
@@ -51,13 +52,13 @@ env = Environment(
 	"TrainEmbeddings" : Builder(
 	    action = "python scripts/train_embeddings.py --input ${SOURCES[0]} --output ${TARGETS[0]}"), 
 	   "TrainModel" : Builder(
-            action="python scripts/train_detm.py --embeddings ${SOURCES[0]} --train ${DATA_FILE}  --output ${TARGETS[0]} --num_topics ${NUMBER_OF_TOPICS} --batch_size ${BATCH_SIZE} --min_word_occurrence ${MIN_WORD_OCCURANCE} --max_word_proportion ${MAX_WORD_PROPORTION}",chdir = False            
+            action="python scripts/train_detm.py --embeddings ${SOURCES[0]} --train ${DATA_FILE}  --output ${TARGETS[0]} --num_topics ${NUMBER_OF_TOPICS} --batch_size ${BATCH_SIZE} --min_word_occurrence ${MIN_WORD_OCCURANCE} --window_size ${WINDOW_SIZE} --max_word_proportion ${MAX_WORD_PROPORTION}",chdir = False            
         ),
         "ApplyModel" : Builder(
             action="python scripts/apply_detm.py --model ${SOURCES[0]} --input ${DATA_FILE} --output ${TARGETS[0]}"
         ),
-	"GroupData" : Builder(action="python scripts/group_data.py --data ${SOURCES[0]}  --output_file ${TARGETS[0]} --random_on ${RANDOM_ON} --sub_category ${SUB_CAT} --reverse_sub_category ${REVERSE_SUB_CAT} --seed ${SEED} --sub_category_search ${SUB_CATEGORY_SEARCH} --sub_category_search_value ${SUB_CATEGORY_SEARCH_VALUE}"),
-	"CountData" : Builder(action= "python scripts/count_data.py --data ${SOURCES[0]}  --group_resolution ${GROUP_RESOLUTION} --counts ${TARGETS[0]} --lost_words ${LOST_WORDS} --lost_words_check ${LOST_WORDS_CHECK}"),
+	"GroupData" : Builder(action="python scripts/group_data.py --data ${SOURCES[0]}  --output_file ${TARGETS[0]} --random_on ${RANDOM_ON} --sub_category ${SUB_CAT} --reverse_sub_category ${REVERSE_SUB_CAT} --seed ${SEED} --sub_category_search ${SUB_CATEGORY_SEARCH} --sub_category_search_value ${SUB_CATEGORY_SEARCH_VALUE} --random_length ${RANDOM_LENGTH}"),
+	"CountData" : Builder(action= "python scripts/count_data.py --data ${SOURCES[0]}  --group_resolution ${GROUP_RESOLUTION} --counts ${TARGETS[0]}"),
 	"InspectModel" : Builder (action = "python scripts/inspect_model.py --counts ${SOURCES[0]} --figure ${TARGETS[0]} --model ${MODEL}"),
 	"CalculateVariance" : Builder (action = "python scripts/calculate_count_variances.py --counts ${SOURCES[0]} --output ${TARGETS[0]}"),
 	"CalculatePercentages" : Builder (action = "python scripts/calculate_count_percentages.py --counts ${SOURCES[0]} --output ${TARGETS[0]}"),
@@ -88,17 +89,21 @@ topic_model_list = []
 
 for entry in embeddings_list: 
     for number in env["NUMBERS_OF_TOPICS"]:
-    	topic_model_list.append([number, (env.TrainModel("work/applied_detm_with_{}_topics.bin".format(number) , entry , DATA_FILE = json_metadata_including_text_ocr, NUMBER_OF_TOPICS = number, BATCH_SIZE = 10, MIN_WORD_OCCURANCE = 8, MAX_WORD_PROPORTION = .7))])
+    	for group in env["WINDOW_SIZE"]:
+    	    topic_model_list.append([(env.TrainModel("work/applied_detm_with_{}_topics.bin".format(number) , entry , DATA_FILE = json_metadata_including_text_ocr, NUMBER_OF_TOPICS = number, BATCH_SIZE = 10, MIN_WORD_OCCURANCE = 1, MAX_WORD_PROPORTION = .99)),number, group])
 
-results = []
+applied_results_levy_list = []
 
-# model format model [0] = number of topics, model[1] = trained model 
+# topic model list = [applied data, number window]
+#applied results levy list = [applied levy, [model_list]
+#random seg = [random seg [applied results]]
+#random seg counts [count, [random seg list]
 
 for model in topic_model_list:
-    results.append([ model, (env.ApplyModel("work/levy_json_{}_topics.jsonl".format(model[0]), model[1],  DATA_FILE = json_metadata_including_text_ocr))])
+    applied_results_levy_list.append([(env.ApplyModel("work/levy_json_{}_topics.jsonl".format(model[1]), model[0],  DATA_FILE = json_metadata_including_text_ocr)), model])
 
 
-xoutput = []
+output = []
 minstrel_output = []
 #results format [[number, model],apply model]
 
@@ -109,15 +114,14 @@ minstrel_output = []
 random_segmentation = []
 random_segmentation_counts = []
 
-for result in results:
-    random_segmentation.append([env.GroupData("work/random_data_segments_topic_no_{}.json".format(result[0][0]), result[1], SEED = 1, RANDOM_ON = 100,REVERSE_SUB_CAT = 0, SUB_CATEGORY_SEARCH = "None",SUB_CATEGORY_SEARCH_VALUE="Junk"),result])
+for result in applied_results_levy_list:
+    random_segmentation.append([env.GroupData("work/random_data_segments_topic_no_{}.json".format(result[1][1]), result[0], SEED = 1, RANDOM_ON = 100,REVERSE_SUB_CAT = 0, SUB_CATEGORY_SEARCH = "None",SUB_CATEGORY_SEARCH_VALUE="Junk"),result])
+
+#need to fix potential future window-size disjunct
+
 
 for random_segment in random_segmentation:    
-    for resolution in env["GROUP_RESOLUTIONS"]:
-    	random_segmentation_counts.append([(env.CountData("work/random_data_counts_{}_resolution_topic_no_{}.json".format(resolution,random_segment[1][0][0]),random_segment[0], GROUP_RESOLUTION = resolution,  LOST_WORDS_CHECK = False, LOST_WORDS = "work/placeholder")), random_segment, resolution])
-
-
-
+    	random_segmentation_counts.append([(env.CountData("work/random_data_counts_{}_resolution_topic_no_{}.json".format(random_segment[1][1][2],random_segment[1][1][1]),random_segment[0], GROUP_RESOLUTION = random_segment[1][1][2])), random_segment])
 
 
 variance_name_list = []
@@ -127,10 +131,10 @@ random_variance_list = []
 random_percentage_list = []
 for entry in random_segmentation_counts:
     print(entry[0])
-    random_variance_list.append([env.CalculateVariance("work/random_variance_list_{}_resolution_{}_topic_no.json".format(entry[2],entry[1][1][0][0]),entry[0]), entry])
-    variance_name_list.append("work/random_variance_list_{}_resolution_{}_topic_no.json".format(entry[2],entry[1][1][0][0]))
-    random_percentage_list.append([env.CalculatePercentages("work/random_percentage_list_{}_resolution_{}_topic_no.json".format(entry[2],entry[1][1][0][0]), entry[0]), entry])
-    percentage_name_list.append("work/random_percentage_list_{}_resolution_{}_topic_no.json".format(entry[2],entry[1][1][0][0]))
+    random_variance_list.append([env.CalculateVariance("work/random_variance_list_{}_resolution_{}_topic_no.json".format(entry[1][1][1][2],entry[1][1][1][1]),entry[0]), entry])
+    variance_name_list.append("work/random_variance_list_{}_resolution_{}_topic_no.json".format(entry[1][1][1][2],entry[1][1][1][1]))
+    random_percentage_list.append([env.CalculatePercentages("work/random_percentage_list_{}_resolution_{}_topic_no.json".format(entry[1][1][1][2],entry[1][1][1][1]), entry[0]), entry])
+    percentage_name_list.append("work/random_percentage_list_{}_resolution_{}_topic_no.json".format(entry[1][1][1][2],entry[1][1][1][1]))
 
 
 #this part is for the full data set 
@@ -138,26 +142,25 @@ for entry in random_segmentation_counts:
 
 full_set_counts = []
 full_set_numpy_arrays = []
-for result in results: 
-    for resolution in env["GROUP_RESOLUTIONS"]:
-        full_set_counts.append(
-	[env.CountData("work/full_group_data_counts_{}_resolution_topic_no_{}.json".format(resolution,result[0][0]), result[1], GROUP_RESOLUTION = resolution, LOST_WORDS_CHECK = True,
-	LOST_WORDS = "work/full_group_data_set_lost_words{}_resolution_topic_no_{}.json".format(resolution,result[0][0])),
-	result, resolution])
+for result in applied_results_levy_list: 
+  
+  full_set_counts.append(
+  	[env.CountData("work/full_group_data_counts_{}_resolution_topic_no_{}.json".format(result[1][2],result[1][1]), result[0], GROUP_RESOLUTION = result[1][2]),
+	result])
 
-        full_set_numpy_arrays.append(
-	[env.ConstructNumpyArray("work/full_group_data_counts_numpy_array_{}_resolution_topic_no_{}.npy".format(resolution,result[0][0]), result[1], MODEL = result[0][1],
-        YEAR_BUCKET =resolution, NUMBER = result[0][0]),result, resolution])
+  full_set_numpy_arrays.append(
+	[env.ConstructNumpyArray("work/full_group_data_counts_numpy_array_{}_resolution_topic_no_{}.npy".format(result[1][2],result[1][1]), result[0], MODEL = result[1][0],
+        YEAR_BUCKET =result[1][2], NUMBER = result[1][1]),result])
 
  	
 
 full_group_variance_list = []
 full_group_percentage_list = []
 for entry in full_set_counts:
-    full_group_variance_list.append([env.CalculateVariance("work/full_group_variance_list_{}_resolution_{}_topic_no.json".format(entry[2], entry[1][0][0]),entry[0]), entry])
-    variance_name_list.append("work/full_group_variance_list_{}_resolution_{}_topic_no.json".format(entry[2], entry[1][0][0]))
-    full_group_percentage_list.append([env.CalculatePercentages("work/full_group_percentage_list_{}_resolution_{}_topic_no.json".format(entry[2], entry[1][0][0]), entry[0]), entry])
-    percentage_name_list.append("work/full_group_percentage_list_{}_resolution_{}_topic_no.json".format(entry[2], entry[1][0][0]))
+    full_group_variance_list.append([env.CalculateVariance("work/full_group_variance_list_{}_resolution_{}_topic_no.json".format(entry[1][1][2], entry[1][1][1]),entry[0]), entry])
+    variance_name_list.append("work/full_group_variance_list_{}_resolution_{}_topic_no.json".format(entry[1][1][2], entry[1][1][1]))
+    full_group_percentage_list.append([env.CalculatePercentages("work/full_group_percentage_list_{}_resolution_{}_topic_no.json".format(entry[1][1][2], entry[1][1][1]), entry[0]), entry])
+    percentage_name_list.append("work/full_group_percentage_list_{}_resolution_{}_topic_no.json".format(entry[1][1][2], entry[1][1][1]))
 
 
 #this part is for the selected data_set
@@ -165,25 +168,24 @@ for entry in full_set_counts:
 selected_segmentation_numpy_arrays = []
 selected_segmentation_counts = []
 selected_segmentation = []
-for result in results:
-    selected_segmentation.append([env.GroupData("work/selected_data_segments_topic_no_{}.json".format(result[0][0]), result[1], SEED= 0, RANDOM_ON= 0, SUB_CAT = "subjectSearched Minstrel shows", REVERSE_SUB_CAT = 0, SUB_CATEGORY_SEARCH = "None",SUB_CATEGORY_SEARCH_VALUE="Junk"), result])
+for result in applied_results_levy_list:
+    selected_segmentation.append([env.GroupData("work/selected_data_segments_topic_no_{}.json".format(result[1][1]), result[0], SEED= 0, RANDOM_ON= 0, SUB_CAT = "subjectSearched Minstrel shows", REVERSE_SUB_CAT = 0, SUB_CATEGORY_SEARCH = "None",SUB_CATEGORY_SEARCH_VALUE="Junk"), result])
 for segmentation in selected_segmentation:
-    for resolution in env["GROUP_RESOLUTIONS"]:
+    for resolution in env["WINDOW_SIZE"]:
         selected_segmentation_counts.append([(env.CountData("work/selected_data_counts_{}_resolution_topic_no_{}.json".format(resolution,
-	segmentation[1][0][0]), segmentation[0], GROUP_RESOLUTION=resolution, LOST_WORDS_CHECK=False, LOST_WORDS="placeholder")),
+	segmentation[1][1][1]), segmentation[0], GROUP_RESOLUTION=resolution)),
 	segmentation, resolution])
 
         selected_segmentation_numpy_arrays.append(
-        [env.ConstructNumpyArray("work/selected_segmentation_numpy_array_{}_resolution_topic_no_{}.npy".format(resolution,result[0][0]), result[1], MODEL = result[0][1], YEAR_BUCKET = resolution, NUMBER = result[0][0]),segmentation[1],
-        resolution])
+        [env.ConstructNumpyArray("work/selected_segmentation_numpy_array_{}_resolution_topic_no_{}.npy".format(resolution,segmentation[1][1][1]), segmentation[0], MODEL = segmentation[1][1][0], YEAR_BUCKET = resolution,NUMBER= segmentation[1][1][1]),segmentation,resolution])
 
 selected_variance_list = []
 selected_percentage_list = []
 for entry in selected_segmentation_counts:
-    selected_variance_list.append([env.CalculateVariance("work/selected_variance_list_{}_resolution_{}_topic_no.json".format(entry[2], entry[1][1][0][0]), entry[0]), entry])
-    variance_name_list.append("work/selected_variance_list_{}_resolution_{}_topic_no.json".format(entry[2], entry[1][1][0][0]))
-    selected_percentage_list.append([env.CalculatePercentages("work/selected_percentage_list_{}_resolution_{}_topic_no.json".format(entry[2], entry[1][1][0][0]),entry[0]), entry])
-    percentage_name_list.append("work/selected_percentage_list_{}_resolution_{}_topic_no.json".format(entry[2], entry[1][1][0][0]))
+    selected_variance_list.append([env.CalculateVariance("work/selected_variance_list_{}_resolution_{}_topic_no.json".format(entry[2], entry[1][1][1][1]), entry[0]), entry])
+    variance_name_list.append("work/selected_variance_list_{}_resolution_{}_topic_no.json".format(entry[2], entry[1][1][1][1]))
+    selected_percentage_list.append([env.CalculatePercentages("work/selected_percentage_list_{}_resolution_{}_topic_no.json".format(entry[2], entry[1][1][1][1]),entry[0]), entry])
+    percentage_name_list.append("work/selected_percentage_list_{}_resolution_{}_topic_no.json".format(entry[2], entry[1][1][1][1]))
 
 #this part is for everything but the selected dataset
 
@@ -191,36 +193,35 @@ for entry in selected_segmentation_counts:
 no_minstrel_counts = []
 no_minstrel_segmentation = []
 no_minstrel_numpy_array = []
-for result in results:
-    no_minstrel_segmentation.append([env.GroupData("work/no_minstrel_data_segments_topic_no_{}.json".format(result[0][0]), result[1], SEED=0, RANDOM_ON=0, LOST_WORDS_CHECK=False,REVERSE_SUB_CAT = 1, LOST_WORDS="work/dummy", SUB_CAT="subjectSearched Minstrel shows",  SUB_CATEGORY_SEARCH = "None",SUB_CATEGORY_SEARCH_VALUE="Junk"), result])
+for result in applied_results_levy_list:
+    no_minstrel_segmentation.append([env.GroupData("work/no_minstrel_data_segments_topic_no_{}.json".format(result[1][1]), result[0], SEED=0, RANDOM_ON=0,REVERSE_SUB_CAT = 1, SUB_CAT="subjectSearched Minstrel shows",  SUB_CATEGORY_SEARCH = "None",SUB_CATEGORY_SEARCH_VALUE="Junk"), result])
 
 
 for segment in no_minstrel_segmentation:
-    for resolution in env["GROUP_RESOLUTIONS"]:
+    for resolution in env["WINDOW_SIZE"]:
         no_minstrel_counts.append([(env.CountData("work/no_minstrel_data_counts_{}_resolution_topic_no_{}.json".format(resolution,
-	segment[1][0][0]), no_minstrel_segmentation[0][0], GROUP_RESOLUTION=resolution, LOST_WORDS_CHECK=False, LOST_WORDS="placeholder")),
+	segment[1][1][1]), segment[0], GROUP_RESOLUTION=resolution)),
 	segment,resolution]) 
 
         no_minstrel_numpy_array.append(
-        [env.ConstructNumpyArray("work/no_minstrel_numpy_array_{}_resolution_topic_no_{}.npy".format(resolution,result[0][0]), result[1], MODEL = result[0][1], YEAR_BUCKET = resolution, NUMBER = result[0][0]),segment[1],
-        resolution])
+        [env.ConstructNumpyArray("work/no_minstrel_numpy_array_{}_resolution_topic_no_{}.npy".format(resolution,segment[1][1][1]), segment[0], MODEL = segment[1][1][0], YEAR_BUCKET = resolution, NUMBER = segment[1][1][1]),segment,resolution])
 
 
 no_minstrel_variance_list = []
 no_minstrel_percentage_list = []
 #entry = 
 for entry in no_minstrel_counts:
-    no_minstrel_variance_list.append([env.CalculateVariance("work/no_minstrel_variance_list_{}_resolution_{}_topic_no.json".format(entry[2], entry[1][1][0][0]),entry[0]), entry])
-    variance_name_list.append("work/no_minstrel_variance_list_{}_resolution_{}_topic_no.json".format(entry[2], entry[1][1][0][0]))
-    no_minstrel_percentage_list.append([env.CalculatePercentages("work/no_minstrel_percentage_list_{}_resolution_{}_topic_no.json".format(entry[2], entry[1][1][0][0]),entry[0]), entry])
-    percentage_name_list.append("work/no_minstrel_percentage_list_{}_resolution_{}_topic_no.json".format(entry[2], entry[1][1][0][0]))
+    no_minstrel_variance_list.append([env.CalculateVariance("work/no_minstrel_variance_list_{}_resolution_{}_topic_no.json".format(entry[2], entry[1][1][1][1]),entry[0]), entry])
+    variance_name_list.append("work/no_minstrel_variance_list_{}_resolution_{}_topic_no.json".format(entry[2], entry[1][1][1][1]))
+    no_minstrel_percentage_list.append([env.CalculatePercentages("work/no_minstrel_percentage_list_{}_resolution_{}_topic_no.json".format(entry[2], entry[1][1][1][1]),entry[0]), entry])
+    percentage_name_list.append("work/no_minstrel_percentage_list_{}_resolution_{}_topic_no.json".format(entry[2], entry[1][1][1][1]))
 
 
 #creating name list for resolution
 csv_variance_output_name_list = []
 csv_percentage_output_name_list = []
 for topic_no in env["NUMBERS_OF_TOPICS"]:
-    for resolution in env["GROUP_RESOLUTIONS"]:
+    for resolution in env["WINDOW_SIZE"]:
         csv_variance_output_name_list.append("work/variance_csv_{}_topics_{}_resolution.csv".format(topic_no,resolution))
         csv_percentage_output_name_list.append("work/percentages_csv_{}_topics_{}_resolution.csv".format(topic_no, resolution))
 
@@ -271,18 +272,18 @@ for thing in percentages_json_output:
 full_set_variance_bimodal = []
 full_set_top_words_per_topic = []
 for numpy_chart in full_set_numpy_arrays: 
-    full_set_variance_bimodal.append(env.ConstructBimodalityVarianceChart("work/variance_bimodal_chart_{}_resolution_{}_topics.json".format(numpy_chart[2], numpy_chart[1][0][0]), numpy_chart[0], OUTPUT_CHART = "work/variance_bimodal_chart_{}_resolution_{}_topics.png".format(numpy_chart[2], numpy_chart[1][0][0]), MODEL = numpy_chart[1][0][1]))
-    full_set_top_words_per_topic.append(env.AnalyzeTopWordsPerTopic("work/top_words_per_topic__{}_resolution_{}_topics.json".format(numpy_chart[2], numpy_chart[1][0][0]), numpy_chart[0], MODEL = numpy_chart[1][0][1]))
+    full_set_variance_bimodal.append(env.ConstructBimodalityVarianceChart("work/variance_bimodal_chart_{}_resolution_{}_topics.json".format(numpy_chart[1][1][2], numpy_chart[1][1][1]), numpy_chart[0], OUTPUT_CHART = "work/variance_bimodal_chart_{}_resolution_{}_topics.png".format(numpy_chart[1][1][2], numpy_chart[1][1][1]), MODEL = numpy_chart[1][1][0]))
+    full_set_top_words_per_topic.append(env.AnalyzeTopWordsPerTopic("work/top_words_per_topic__{}_resolution_{}_topics.json".format(numpy_chart[1][1][2], numpy_chart[1][1][1]), numpy_chart[0], MODEL = numpy_chart[1][1][0]))
 no_minstrel_variance_bimodal = []
 no_minstrel_top_words_per_topic = []
 for numpy_chart in no_minstrel_numpy_array:
-    no_minstrel_variance_bimodal.append(env.ConstructBimodalityVarianceChart("work/no_minstrel_variance_bimodal_chart_{}_resolution_{}_topics.json".format(numpy_chart[2], numpy_chart[1][0][0]), numpy_chart[0],OUTPUT_CHART = "work/no_minstrel_variance_bimodal_chart_{}_resolution_{}_topics.png".format(numpy_chart[2], numpy_chart[1][0][0]), MODEL =numpy_chart[1][0][1]))
-    no_minstrel_top_words_per_topic.append(env.AnalyzeTopWordsPerTopic("work/no_minstrel_top_words_per_topic__{}_resolution_{}_topics.json".format(numpy_chart[2], numpy_chart[1][0][0]), numpy_chart[0], MODEL =numpy_chart[1][0][1]))
+    no_minstrel_variance_bimodal.append(env.ConstructBimodalityVarianceChart("work/no_minstrel_variance_bimodal_chart_{}_resolution_{}_topics.json".format(numpy_chart[2], numpy_chart[1][1][1][1]), numpy_chart[0],OUTPUT_CHART = "work/no_minstrel_variance_bimodal_chart_{}_resolution_{}_topics.png".format(numpy_chart[2], numpy_chart[1][1][1][1]), MODEL =numpy_chart[1][1][1][0]))
+    no_minstrel_top_words_per_topic.append(env.AnalyzeTopWordsPerTopic("work/no_minstrel_top_words_per_topic__{}_resolution_{}_topics.json".format(numpy_chart[2], numpy_chart[1][1][1][1]), numpy_chart[0], MODEL =numpy_chart[1][1][1][0]))
 minstrel_variance_bimodal = []
 minstrel_top_words_per_topic = []
 for numpy_chart in minstrel_variance_bimodal:
-    minstrel_variance_bimodal.append(env.ConstructBimodalityVarianceChart("work/minstrel_variance_bimodal_chart_{}_resolution_{}_topics.json".format(numpy_chart[2], numpy_chart[1][0][0]), numpy_chart[0],OUTPUT_CHART = "work/minstrel_variance_bimodal_chart_{}_resolution_{}_topics.png".format(numpy_chart[2], numpy_chart[1][0][0]), MODEL = numpy_chart[1][0][1]))
-    minstrel_top_words_per_topic.append(env.AnalyzeTopWordsPerTopic("work/minstrel_top_words_per_topic__{}_resolution_{}_topics.json".format(numpy_chart[2], numpy_chart[1][0][0]), numpy_chart[0], MODEL =numpy_chart[1][0][1]))
+    minstrel_variance_bimodal.append(env.ConstructBimodalityVarianceChart("work/minstrel_variance_bimodal_chart_{}_resolution_{}_topics.json".format(numpy_chart[2], numpy_chart[1][1][1][1]), numpy_chart[0],OUTPUT_CHART = "work/minstrel_variance_bimodal_chart_{}_resolution_{}_topics.png".format(numpy_chart[2], numpy_chart[1][1][1][1]), MODEL = numpy_chart[1][1][1][0]))
+    minstrel_top_words_per_topic.append(env.AnalyzeTopWordsPerTopic("work/minstrel_top_words_per_topic__{}_resolution_{}_topics.json".format(numpy_chart[2], numpy_chart[1][1][1][1]), numpy_chart[0], MODEL =numpy_chart[1][1][1][0]))
 
 
 

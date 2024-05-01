@@ -35,6 +35,14 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    "--random_length",
+    dest="random_length",
+    type = int, 
+    default = 2000,
+    help="length of random dictionary"
+)
+
+parser.add_argument(
     "--sub_category_search",
     dest="sub_category_search",
     help="allows you to search out a subcategory -- requires two values, the first is the dictionary key, the second is the desired value."
@@ -87,14 +95,16 @@ if abs(args.random_on) > 0:
         #allows you to input a seed for replicability
         random.seed(a = args.seed)
     for x in range(args.random_on):
-        dictionary_list = random.sample(data_dictionary_list, 2000)
+        dictionary_list = random.sample(data_dictionary_list, args.random_length)
         rep_dict_list = []
         for sub_dict in dictionary_list:
             rep_dict = {}
-            rep_dict["pub_date"] = sub_dict["pub_date"]
-            rep_dict["topics_for_word_phi"] = sub_dict["topics_for_word_phi"]
-            rep_dict["levy_pid"] = sub_dict["levy_pid"]
-            rep_dict["sub_doc_bow_dict"] = sub_dict["sub_doc_bow_dict"]
+            rep_dict["text"] = sub_dict["text"]
+            rep_dict["subjectSearched"] = sub_dict["subjectSearched"]
+            rep_dict["time"] = sub_dict["time"]
+            #rep_dict["topics_for_word_phi"] = sub_dict["topics_for_word_phi"]
+            rep_dict["pid"] = sub_dict["pid"]
+            #rep_dict["sub_doc_bow_dict"] = sub_dict["sub_doc_bow_dict"]
             rep_dict_list.append(rep_dict)
 
         output_dictionary_list.append(rep_dict_list)
