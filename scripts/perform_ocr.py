@@ -1,74 +1,53 @@
-#get rid of all the imports from earlier versions of the program 
-import os
-import subprocess
 from PIL import Image
-import glob
+import gzip
 import io
-#import pdf2image
-#from pdf2image import convert_from_bytes, convert_from_path
 import pytesseract 
-from PyPDF2 import PdfReader
 import fitz
 import argparse 
 import zipfile
 import json 
+import logging
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--input", dest='zip_file', help="zip data for the ocr")
-parser.add_argument("--output", dest= "out_file", help = "output json file")
-                    
-args = parser.parse_args()
-output = args.out_file
-input_file = args.zip_file
-
-def make_ocr(the_file,the_name):
-    name = the_name 
-    text_file = []
-    #doc = the_file  #fitz.open(the_file)
-    for i in range(len(the_file)):
-        page = the_file[i]
-        #there are settings here which might optimize ocr accuracy
+def perform_ocr(pages):
+    page_texts = []
+    for page in pages:
         pixmap = page.get_pixmap()
         png_bytes = pixmap.tobytes()
-        image = Image.open(io.BytesIO(png_bytes))
-        #there are also definitely modes to further test/explore here, including page/column segmentation mode 
-        text = pytesseract.image_to_string(image)
-        text_file.append(text)
-    text_file = "".join(text_file)
-    name = the_name
-    name = name.replace('-', ":", 1)
-    name = name.replace("-",".")
-    name = name.strip('.pdf')
-    text_dictionary = {}
-    text_dictionary[name] = text_file
-    return text_dictionary
+        page_image = Image.open(io.BytesIO(png_bytes))
+        page_text = pytesseract.image_to_string(page_image)
+        page_texts.append(page_text)
+    return "\n".join(page_texts)
 
-json_list = []
-text_list = []
-new_json_list = []
-with zipfile.ZipFile(input_file, 'r') as zip_file:
-    for line in zip_file.namelist():
-        with zip_file.open(line) as x: 
-            if line.endswith(".jsonl"):
-                for line in io.TextIOWrapper(x):
-                    data = json.loads(line)
-                    json_list.append(data)
-            elif line.endswith('.pdf'):
-                doc = fitz.open("pdf",x.read())
-                out_text = make_ocr(doc,line)
-                text_list.append(out_text)
-print(len(json_list))
-print(len(text_list))
-for y in json_list:
-    for z in text_list:
-        name1 = z.keys()
-        for name in name1:
-            if y["levy_pid"] == name:
-                y["full_text"] = z[name]
-                new_json_list.append(y)
-                print("matched" + name)
-with open(output, "w") as json_file:
-    for entry in new_json_list:
-        json.dump(entry, json_file)
-        json_file.write('\n')
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input_archive", dest='input_archive', help="zip data for the ocr")
+    parser.add_argument("--id_file", dest="id_file", help="file containing list of Levy IDs to process")
+    parser.add_argument("--output_file", dest= "output_file", help = "output jsonl file")
+    args = parser.parse_args()
+
+    logging.basicConfig(level=logging.INFO)
+
+    ids_to_process = set()
+    with gzip.open(args.id_file, "rt") as ifd:
+        for line in ifd:
+            ids_to_process.add(line.strip())
+    
+    metadata = {}
+    with zipfile.ZipFile(args.input_archive, "r") as zip_file, gzip.open(args.output_file, "wt") as ofd:
+        with zip_file.open("levy_metadata.jsonl", "r") as ifd:
+            for line in io.TextIOWrapper(ifd):
+                entry = json.loads(line)
+                if entry["levy_pid"] in ids_to_process:
+                    metadata[entry["levy_pid"]] = entry    
+        for i, name in enumerate(zip_file.namelist()):
+            if name.endswith('.pdf'):
+                pid = name.replace("-", ":", 1).replace("-", ".").replace(".pdf", "")
+                if pid in ids_to_process:
+                    with zip_file.open(name) as ifd: 
+                        image = fitz.open("pdf", ifd.read())
+                        entry = metadata[pid]
+                        entry["full_text"] = perform_ocr(image)
+                        ofd.write(json.dumps(entry) + "\n")

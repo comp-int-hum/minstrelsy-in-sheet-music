@@ -1,3 +1,10 @@
+pymupdf
+pytesseract
+steamroller
+pillow
+
+
+
 steamroller
 pillow
 PyPDF2
