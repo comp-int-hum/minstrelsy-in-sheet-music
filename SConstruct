@@ -33,9 +33,8 @@ vars.AddVariables(
     ("CHUNK_SIZE", "", [500]),
     ("EXISTING_JSON", "", False),
     ("NUM_ID_SPLITS", "", 500),
+    ("LIMIT_SPLITS", "", None),
     #("EXISTING_JSON_LOCATION","","/home/sbacker2/projects/minstrelsy_in_sheet_music/minstrelsy-in-sheet-music/data/json_metadata.jsonl"),
-    #("USE_GRID","",False),
-    #("GRID_TYPE","", "slurm"),
     #("GRID_GPU_COUNT","", 1),
     #("GRID_MEMORY", "", "64G"),
     #("GRID_TIME", "", "24:00:00")
@@ -48,9 +47,12 @@ env = Environment(
     ENV=os.environ,
     tools=[],
     BUILDERS={
-        "SplitIds" : Builder(
-            action="python scripts/split_ids.py --input ${SOURCES[0]} ${TARGETS}"
+        "Scatter" : Builder(
+            action="python scripts/scatter.py --input ${SOURCES[0]} ${TARGETS}"
         ),
+        "Gather" : Builder(
+            action="python scripts/gather.py --output ${TARGETS[0]} ${SOURCES}"
+        ),        
         "PerformOcr" : Builder(
             action="python scripts/perform_ocr.py --input_archive ${SOURCES[0]} --id_file ${SOURCES[1]} --output ${TARGETS[0]}"
         ),
@@ -97,18 +99,21 @@ env = Environment(
 )
 
 
-id_splits = env.SplitIds(
-    ["work/id_split_{}.txt.gz".format(i + 1) for i in range(env["NUM_ID_SPLITS"])],
+id_splits = env.Scatter(
+    ["work/id_splits/{}.txt.gz".format(i + 1) for i in range(env["NUM_ID_SPLITS"])],
     env["SHEET_MUSIC_ARCHIVE"]
 )
 
 ocr_outputs = []
-for i, split in enumerate(id_splits):
-    ocr_outputs = env.PerformOcr("work/ocr_output_{}.jsonl.gz".format(i + 1), [env["SHEET_MUSIC_ARCHIVE"], split])
-    
-# The basic pattern for invoking a build rule is:
-#
-#   "Rule(list_of_targets, list_of_sources, VARIABLE1=value, VARIABLE2=value...)"
+for i, split in enumerate(id_splits[0:env["LIMIT_SPLITS"]] if env.get("LIMIT_SPLITS") else id_splits):
+    ocr_outputs.append(
+        env.PerformOcr("work/ocr_splits/{}.jsonl.gz".format(i + 1), [env["SHEET_MUSIC_ARCHIVE"], split])
+    )
+
+all_ocr = env.Gather(
+    "work/all_ocr.jsonl.gz",
+    ocr_outputs
+)
 
 #topic_model_list = []
 #if env["EXISTING_JSON"] == False: 
