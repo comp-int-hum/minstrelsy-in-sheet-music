@@ -27,7 +27,7 @@ if __name__ == "__main__":
         random.seed(args.random_seed)
 
     sentences = []
-    with open(args.input, "rt") as ifd:
+    with gzip.open(args.input, "rt") as ifd:
         for entry in ifd:
             j = json.loads(entry)
             local_sentences = j["full_text"].split()

@@ -26,7 +26,7 @@ import pickle
 # example, changing the number of folds).
 vars = Variables("custom.py")
 vars.AddVariables( 
-    ("NUMBERS_OF_TOPICS", "", [5,10,15,20,30]),
+    ("NUMBERS_OF_TOPICS", "", [20]),
     ("DATA_PATH", "", os.path.expanduser("~/corpora")),
     ("SHEET_MUSIC_ARCHIVE", "", "${DATA_PATH}/levy.zip"),
     ("GROUP_RESOLUTIONS", "", [5, 10, 25]),
@@ -34,6 +34,8 @@ vars.AddVariables(
     ("EXISTING_JSON", "", False),
     ("NUM_ID_SPLITS", "", 500),
     ("LIMIT_SPLITS", "", None),
+    ("GPU_ACCOUNT", "", None),
+    ("GPU_QUEUE", "", None),
     #("EXISTING_JSON_LOCATION","","/home/sbacker2/projects/minstrelsy_in_sheet_music/minstrelsy-in-sheet-music/data/json_metadata.jsonl"),
     #("GRID_GPU_COUNT","", 1),
     #("GRID_MEMORY", "", "64G"),
@@ -59,42 +61,42 @@ env = Environment(
 	"TrainEmbeddings" : Builder(
 	    action = "python scripts/train_embeddings.py --input ${SOURCES[0]} --output ${TARGETS[0]}"
         ), 
-	"TrainModel" : Builder(
-            action="python scripts/train_detm.py --embeddings ${SOURCES[0]} --train ${DATA_FILE}  --output ${TARGETS[0]} --num_topics ${NUMBER_OF_TOPICS} --batch_size ${BATCH_SIZE} --min_word_occurrence ${MIN_WORD_OCCURANCE} --max_word_proportion ${MAX_WORD_PROPORTION}"
+	"TrainDETM" : Builder(
+            action="python scripts/train_detm.py --embeddings ${SOURCES[0]} --train ${SOURCES[1]}  --output ${TARGETS[0]} --num_topics ${NUMBER_OF_TOPICS} --batch_size ${BATCH_SIZE} --min_word_occurrence ${MIN_WORD_OCCURRENCE} --max_word_proportion ${MAX_WORD_PROPORTION}"
         ),
-        "ApplyModel" : Builder(
-            action="python scripts/apply_detm.py --model ${SOURCES[0]} --input ${DATA_FILE} --output ${TARGETS[0]}"
+        "ApplyDETM" : Builder(
+            action="python scripts/apply_detm.py --model ${SOURCES[0]} --input ${SOURCES[1]} --output ${TARGETS[0]}"
         ),
-	"GroupData" : Builder(
-            action="python scripts/group_data.py --data ${SOURCES[0]}  --output_file ${TARGETS[0]} --random_on ${RANDOM_ON} --sub_category ${SUB_CAT} --reverse_sub_category ${REVERSE_SUB_CAT} --seed ${SEED} --sub_category_search ${SUB_CATEGORY_SEARCH} --sub_category_search_value ${SUB_CATEGORY_SEARCH_VALUE}"
-        ),
-	"CountData" : Builder(
-            action= "python scripts/count_data.py --data ${SOURCES[0]}  --group_resolution ${GROUP_RESOLUTION} --counts ${TARGETS[0]} --lost_words ${LOST_WORDS} --lost_words_check ${LOST_WORDS_CHECK}"
-        ),
-	"InspectModel" : Builder(
-            action = "python scripts/inspect_model.py --counts ${SOURCES[0]} --figure ${TARGETS[0]} --model ${MODEL}"
-        ),
-	"CalculateVariance" : Builder(
-            action = "python scripts/calculate_count_variances.py --counts ${SOURCES[0]} --output ${TARGETS[0]}"
-        ),
-	"CalculatePercentages" : Builder(
-            action = "python scripts/calculate_count_percentages.py --counts ${SOURCES[0]} --output ${TARGETS[0]}"
-        ),
-	"CondenseJson" : Builder(
-            action= "python scripts/condense_json.py --output_file ${OUTPUT} --json_output ${TARGETS[0]} --input ${SOURCES}"
-        ),
-	"CreateVarianceReport" : Builder(
-            action = "python scripts/create_variance_report.py --output_file ${TARGETS[0]} --input_file ${SOURCES[0]} --model ${MODEL}"
-        ), 
-	"ConstructNumpyArray" : Builder(
-            action = "python scripts/construct_numpy_array.py --output_file ${TARGETS[0]} --input_file ${SOURCES[0]} --model ${MODEL} --year_bucket ${YEAR_BUCKET} --number ${NUMBER} "
-        ),
-	"ConstructBimodalityVarianceChart" : Builder(
-            action = "python scripts/generate_graph_of_bimodality_and_variance.py --output_dictionary ${TARGETS[0]} --matrix ${SOURCES[0]} --output_chart ${OUTPUT_CHART} --model ${MODEL}"
-        ),
-	"AnalyzeTopWordsPerTopic" : Builder (
-            action = "python scripts/numpy_analyze_top_topic_words_per_time.py --output_file ${TARGETS[0]} --matrix ${SOURCES[0]} --model ${MODEL}"
-        )
+	# "GroupData" : Builder(
+        #     action="python scripts/group_data.py --data ${SOURCES[0]}  --output_file ${TARGETS[0]} --random_on ${RANDOM_ON} --sub_category ${SUB_CAT} --reverse_sub_category ${REVERSE_SUB_CAT} --seed ${SEED} --sub_category_search ${SUB_CATEGORY_SEARCH} --sub_category_search_value ${SUB_CATEGORY_SEARCH_VALUE}"
+        # ),
+	# "CountData" : Builder(
+        #     action= "python scripts/count_data.py --data ${SOURCES[0]}  --group_resolution ${GROUP_RESOLUTION} --counts ${TARGETS[0]} --lost_words ${LOST_WORDS} --lost_words_check ${LOST_WORDS_CHECK}"
+        # ),
+	# "InspectModel" : Builder(
+        #     action = "python scripts/inspect_model.py --counts ${SOURCES[0]} --figure ${TARGETS[0]} --model ${MODEL}"
+        # ),
+	# "CalculateVariance" : Builder(
+        #     action = "python scripts/calculate_count_variances.py --counts ${SOURCES[0]} --output ${TARGETS[0]}"
+        # ),
+	# "CalculatePercentages" : Builder(
+        #     action = "python scripts/calculate_count_percentages.py --counts ${SOURCES[0]} --output ${TARGETS[0]}"
+        # ),
+	# "CondenseJson" : Builder(
+        #     action= "python scripts/condense_json.py --output_file ${OUTPUT} --json_output ${TARGETS[0]} --input ${SOURCES}"
+        # ),
+	# "CreateVarianceReport" : Builder(
+        #     action = "python scripts/create_variance_report.py --output_file ${TARGETS[0]} --input_file ${SOURCES[0]} --model ${MODEL}"
+        # ), 
+	# "ConstructNumpyArray" : Builder(
+        #     action = "python scripts/construct_numpy_array.py --output_file ${TARGETS[0]} --input_file ${SOURCES[0]} --model ${MODEL} --year_bucket ${YEAR_BUCKET} --number ${NUMBER} "
+        # ),
+	# "ConstructBimodalityVarianceChart" : Builder(
+        #     action = "python scripts/generate_graph_of_bimodality_and_variance.py --output_dictionary ${TARGETS[0]} --matrix ${SOURCES[0]} --output_chart ${OUTPUT_CHART} --model ${MODEL}"
+        # ),
+	# "AnalyzeTopWordsPerTopic" : Builder (
+        #     action = "python scripts/numpy_analyze_top_topic_words_per_time.py --output_file ${TARGETS[0]} --matrix ${SOURCES[0]} --model ${MODEL}"
+        # )
     }
 )
 
@@ -115,38 +117,35 @@ all_ocr = env.Gather(
     ocr_outputs
 )
 
-#topic_model_list = []
-#if env["EXISTING_JSON"] == False: 
-#    json_metadata_including_text_ocr = env.PerformOcr(["work/json_metadata.jsonl.gz"],env["SHEET_MUSIC_ARCHIVE"])
-#else:
-#    json_metadata_including_text_ocr = env.File("work/json_metadata.jsonl.gz")
+embeddings = env.TrainEmbeddings("work/word2vec_embeddings.bin", all_ocr)
 
+topic_models = {}
+for number_of_topics in env["NUMBERS_OF_TOPICS"]:
+    topic_models[number_of_topics] = env.TrainDETM(
+        "work/detm_model_${NUMBER_OF_TOPICS}.bin",
+        [embeddings, all_ocr],
+        NUMBER_OF_TOPICS=number_of_topics,
+        BATCH_SIZE=2000,
+        MIN_WORD_OCCURRENCE=5,
+        MAX_WORD_PROPORTION=0.7,
+        STEAMROLLER_ACCOUNT=env.get("GPU_ACCOUNT", None),
+        STEAMROLLER_GPU_COUNT=1,
+        STEAMROLLER_QUEUE=env.get("GPU_QUEUE", None),
+        STEAMROLLER_MEMORY="64G"
+    )
 
-    
-# embeddings_list = []
-# embeddings_list.append(env.TrainEmbeddings("work/word_2_vec_embeddings.bin", json_metadata_including_text_ocr))
+results = {}
+for number_of_topics, model in topic_models.items():
+    results[number_of_topics] = env.ApplyDETM(
+        "work/results_${NUMBER_OF_TOPICS}.jsonl.gz",
+        [model, all_ocr],
+        NUMBER_OF_TOPICS=number_of_topics,
+        #STEAMROLLER_ACCOUNT=env.get("GPU_ACCOUNT", None),
+        #STEAMROLLER_GPU_COUNT=1,
+        #STEAMROLLER_QUEUE=env.get("GPU_QUEUE", None),
+        STEAMROLLER_MEMORY="64G"        
+    )
 
-
-# topic_model_list = []
-
-# for entry in embeddings_list: 
-#     for number in env["NUMBERS_OF_TOPICS"]:
-#     	topic_model_list.append([number, (env.TrainModel("work/applied_detm_with_{}_topics.bin".format(number) , entry , DATA_FILE = json_metadata_including_text_ocr, NUMBER_OF_TOPICS = number, BATCH_SIZE = 10, MIN_WORD_OCCURANCE = 8, MAX_WORD_PROPORTION = .7))])
-
-# results = []
-
-# # model format model [0] = number of topics, model[1] = trained model 
-
-# for model in topic_model_list:
-#     results.append([ model, (env.ApplyModel("work/levy_json_{}_topics.jsonl".format(model[0]), model[1],  DATA_FILE = json_metadata_including_text_ocr))])
-
-
-# xoutput = []
-# minstrel_output = []
-# #results format [[number, model],apply model]
-
-
-# #this part is for the random segmentation 
 
 
 # random_segmentation = []

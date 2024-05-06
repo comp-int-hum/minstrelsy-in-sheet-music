@@ -213,7 +213,7 @@ if __name__ == "__main__":
                         )
     elif args.train:
         all_subdocs = []
-        with open (args.train, "rt") as ifd:
+        with gzip.open(args.train, "rt") as ifd:
             for line in ifd:
                 #if i > 100:
                 #    break
