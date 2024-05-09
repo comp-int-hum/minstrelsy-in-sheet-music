@@ -5,6 +5,9 @@ import math
 import re
 from gensim.models import LdaModel
 import pickle
+import gzip
+import torch
+from detm import DETM
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -13,7 +16,7 @@ parser.add_argument(
     required=True,
     help="input file that will be analyzed to."
 )
-
+parser.add_argument('--device') #, choices=["cpu", "cuda"], help='')   
 parser.add_argument(
     "--output_file",
     dest = "output_file",
@@ -26,7 +29,7 @@ parser.add_argument(
     required = True, )
 
 args = parser.parse_args()
-
+args.device = "cpu"
 output_dictionary = {}
 
 
@@ -46,8 +49,8 @@ for number_of_topics, resolutions in data.items():
         print(number_of_topics)
         if int(integer_value) == int(number_of_topics):
             print("match!")
-            with open(x, "rb") as ifd:
-                model = pickle.loads(ifd.read())
+            with gzip.open(x, "rb") as ifd:
+                model = torch.load(ifd, map_location=torch.device(args.device))
                 print("model loaded!")
     print("this is number of topics")
     print(number_of_topics)
@@ -61,7 +64,7 @@ for number_of_topics, resolutions in data.items():
         select_collector = {}
         report = {}
         for variance_dict in variance_dict_context:
-
+            print(variance_dict)
 
             #creating two dictionaries -- one that collects all the variance values, one that collects the selected/minstrel values
 
@@ -84,15 +87,26 @@ for number_of_topics, resolutions in data.items():
                     print("this is the variance")
                     print(variance)
                     select_collector[int(topic)] = variance
-                    
+
+        print("this is the get cycle")
+        print(integer_value)
+        for x in range(integer_value):
+
+            print(x)
+            select_collector[x] = select_collector.get(x, 0)         
+        print(select_collector.keys())            
                     
         for topic_no, variance_values in variance_collector.items():
             #print(topic_no)
             #print(type(topic_no))
             #print(variance_values)
+            print(variance_values)
             minstrel_z_score = float(((select_collector[topic_no] - statistics.mean(variance_values)) / statistics.stdev(variance_values)))
-            topic_terms = model.show_topic(topic_no)
-            topic_terms = [{'word': word, 'probability': float(prob)} for word, prob in topic_terms]
+
+            #this is more information that's nice to have here, but need to find a way to bring it in with the detm 
+
+            #topic_terms = model.show_topic(topic_no)
+            #topic_terms = [{'word': word, 'probability': float(prob)} for word, prob in topic_terms]
             report[topic_no] = {
                 "mean": float(statistics.mean(variance_values)),
                 "standard_deviation":float(statistics.stdev(variance_values)),
@@ -100,7 +114,7 @@ for number_of_topics, resolutions in data.items():
                 "minstrel_z_score" : minstrel_z_score,
                 "resolution" : resolution,
                 "topic_no" : topic_no,
-                "topic_terms" : topic_terms,
+                #"topic_terms" : topic_terms,
                 "number of topics" : number_of_topics
             }
         resolution_dict[int(resolution)] = report

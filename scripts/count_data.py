@@ -89,7 +89,7 @@ with open(args.data, "rt") as ifd:
                 if group_value  < args.cutoff_date and group_value > args.start_date:
                     groupwise_topic_counts[group][topic] = groupwise_topic_counts[group].get(topic, 0) + 1
                     
-    counts_list.append(groupwise_topic_counts)                
+        counts_list.append(groupwise_topic_counts)                
     
 #prints out a series of jsonl count objects 
 

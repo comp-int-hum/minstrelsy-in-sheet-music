@@ -102,20 +102,53 @@ word_len = len(model.id2token)
 print(word_len)
 overall_array= numpy.zeros((topics,word_len,buckets))
 
+counter = 0
 
 with open(args.input_file, "r") as in_file:
-    for x in in_file:
-       composition =  json.loads(x)
-       #someday find a way to include the guesses? 
-       print(composition)
-       
-       pub_date_bucket = (int(composition["time"]) - args.start_year) // args.year_bucket  
+    #counter = 0
+    local_list = []
+    if args.input_file.endswith(".jsonl"):
+        for x in in_file:
+     #       counter = counter + 1
+            composition =  json.loads(x)
+            local_list.append(composition)
+            #someday find a way to include the guesses? 
+       #composition = composition[0]
+       #print(type(composition))
+       #print(composition["time"])
+       #if type(composition) == list:
+           #print(composition)
+           #print(composition[0])
+           #print(composition[1])
+         #  composition = composition[0]
+       #if type(composition) == list:                                                                                                                                                                            
+           #print(composition)
+        #   print(composition[0])
+           #print(composition[1])                                                                                                                                                                                
+    else:
+        compositions = json.load(in_file)
+
+        for x in compositions[0]:
+            print(type(x))
+            print(x)
+            #if type(x) == list:
+             #   y = x[0]
+            local_list.append(x)
+        #print(local_list)
+        #second_counter = 0 
+        #for thing in local_list:
+         #   print(thing)
+          #  print(second_counter)
+           # second_counter = second_counter + 1 
+    for song in local_list:    
+       counter = counter + 1       
+       pub_date_bucket = (song["time"] - args.start_year) // args.year_bucket  
        #this dealt with a "final bucket" issue, not sure if that will still be at play with the detm
        #if composition["date"]) >= 1925:
        #   pub_date_bucket = 4
        print("this is the date bucket")
        print(pub_date_bucket)
-       for word in composition["text"]:
+       for word in song["text"]:
            
            
            word_num = token2id[word[0]]
@@ -130,6 +163,7 @@ with open(args.input_file, "r") as in_file:
            #print(composition["pub_date"])
        overall_array[top_topic,word_num, pub_date_bucket] = overall_array[top_topic,word_num, pub_date_bucket] + 1
        print(overall_array[ top_topic,word_num, pub_date_bucket])
+print(counter)
 numpy.savetxt("work/test_slice.csv", overall_array[:, :, 1], delimiter=",")
 numpy.save(args.output_file, overall_array)
     

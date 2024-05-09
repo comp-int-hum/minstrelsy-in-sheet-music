@@ -37,6 +37,7 @@ vars.AddVariables(
     ("GRID_GPU_COUNT","", 1),
     ("GRID_MEMORY", "", "64G"),
     ("GRID_TIME", "", "24:00:00"),
+    ("BIMODAL_ATTESTATION_LEVEL", "", 1),
     ("WINDOW_SIZE","", [20])
     #("FOLDS", "", 1),
 )    
@@ -64,8 +65,8 @@ env = Environment(
 	"CalculatePercentages" : Builder (action = "python scripts/calculate_count_percentages.py --counts ${SOURCES[0]} --output ${TARGETS[0]}"),
 	"CondenseJson" : Builder ( action= "python scripts/condense_json.py --output_file ${OUTPUT} --json_output ${TARGETS[0]} --input ${SOURCES}"),
 	"CreateVarianceReport": Builder (action = "python scripts/create_variance_report.py --output_file ${TARGETS[0]} --input_file ${SOURCES[0]} --model ${MODEL}", chdir=False), 
-	"ConstructNumpyArray": Builder (action = "python scripts/construct_numpy_array.py --output_file ${TARGETS[0]} --input_file ${SOURCES[0]} --model ${MODEL} --year_bucket ${YEAR_BUCKET} --number ${NUMBER} "), 
-	"ConstructBimodalityVarianceChart": Builder (action = "python scripts/generate_graph_of_bimodality_and_variance.py --output_dictionary ${TARGETS[0]} --matrix ${SOURCES[0]} --output_chart ${OUTPUT_CHART} --model ${MODEL}"),
+	"ConstructNumpyArray": Builder (action = "python scripts/construct_numpy_array.py --output_file ${TARGETS[0]} --input_file ${SOURCES[0]} --model ${MODEL} --year_bucket ${YEAR_BUCKET} --number ${NUMBER}"), 
+	"ConstructBimodalityVarianceChart": Builder (action = "python scripts/generate_graph_of_bimodality_and_variance.py --output_dictionary ${TARGETS[0]} --matrix ${SOURCES[0]} --output_chart ${OUTPUT_CHART} --word_attestation ${ATTESTATION} --model ${MODEL}"),
 	"AnalyzeTopWordsPerTopic" : Builder (action = "python scripts/numpy_analyze_top_topic_words_per_time.py --output_file ${TARGETS[0]} --matrix ${SOURCES[0]} --model ${MODEL}")
 
 }
@@ -253,13 +254,19 @@ graph = []
  #  graph.append([env.InspectModel("work/graph_of_no_minstrel_texts_with_{}_resolution_{}_topics.png".format(entry[2],entry[1][1][0][0]),
   # entry[0],MODEL = entry[1][1][0][1]), entry])
 
+#this is for the variance reports that I'm currently cutting out
+
+
 just_models_list = []
 for model in topic_model_list:
-    just_models_list.append(model[1])
+    just_models_list.append(model[0])
 print(just_models_list)
 
 print(variance_json_output)
 variance_report_list = []
+
+#this is for the variance reports that I'm currently cutting out -- useful but I need to rethink what the top models look like 
+
 for thing in variance_json_output:
     print(thing)
     print(thing[0])
@@ -272,17 +279,17 @@ for thing in percentages_json_output:
 full_set_variance_bimodal = []
 full_set_top_words_per_topic = []
 for numpy_chart in full_set_numpy_arrays: 
-    full_set_variance_bimodal.append(env.ConstructBimodalityVarianceChart("work/variance_bimodal_chart_{}_resolution_{}_topics.json".format(numpy_chart[1][1][2], numpy_chart[1][1][1]), numpy_chart[0], OUTPUT_CHART = "work/variance_bimodal_chart_{}_resolution_{}_topics.png".format(numpy_chart[1][1][2], numpy_chart[1][1][1]), MODEL = numpy_chart[1][1][0]))
+    full_set_variance_bimodal.append(env.ConstructBimodalityVarianceChart("work/variance_bimodal_chart_{}_resolution_{}_topics.json".format(numpy_chart[1][1][2], numpy_chart[1][1][1]), numpy_chart[0], OUTPUT_CHART = "work/variance_bimodal_chart_{}_resolution_{}_topics.png".format(numpy_chart[1][1][2], numpy_chart[1][1][1]), MODEL = numpy_chart[1][1][0], ATTESTATION = env["BIMODAL_ATTESTATION_LEVEL"]))
     full_set_top_words_per_topic.append(env.AnalyzeTopWordsPerTopic("work/top_words_per_topic__{}_resolution_{}_topics.json".format(numpy_chart[1][1][2], numpy_chart[1][1][1]), numpy_chart[0], MODEL = numpy_chart[1][1][0]))
 no_minstrel_variance_bimodal = []
 no_minstrel_top_words_per_topic = []
 for numpy_chart in no_minstrel_numpy_array:
-    no_minstrel_variance_bimodal.append(env.ConstructBimodalityVarianceChart("work/no_minstrel_variance_bimodal_chart_{}_resolution_{}_topics.json".format(numpy_chart[2], numpy_chart[1][1][1][1]), numpy_chart[0],OUTPUT_CHART = "work/no_minstrel_variance_bimodal_chart_{}_resolution_{}_topics.png".format(numpy_chart[2], numpy_chart[1][1][1][1]), MODEL =numpy_chart[1][1][1][0]))
+    no_minstrel_variance_bimodal.append(env.ConstructBimodalityVarianceChart("work/no_minstrel_variance_bimodal_chart_{}_resolution_{}_topics.json".format(numpy_chart[2], numpy_chart[1][1][1][1]), numpy_chart[0],OUTPUT_CHART = "work/no_minstrel_variance_bimodal_chart_{}_resolution_{}_topics.png".format(numpy_chart[2], numpy_chart[1][1][1][1]), MODEL =numpy_chart[1][1][1][0],ATTESTATION = env["BIMODAL_ATTESTATION_LEVEL"]))
     no_minstrel_top_words_per_topic.append(env.AnalyzeTopWordsPerTopic("work/no_minstrel_top_words_per_topic__{}_resolution_{}_topics.json".format(numpy_chart[2], numpy_chart[1][1][1][1]), numpy_chart[0], MODEL =numpy_chart[1][1][1][0]))
 minstrel_variance_bimodal = []
 minstrel_top_words_per_topic = []
 for numpy_chart in minstrel_variance_bimodal:
-    minstrel_variance_bimodal.append(env.ConstructBimodalityVarianceChart("work/minstrel_variance_bimodal_chart_{}_resolution_{}_topics.json".format(numpy_chart[2], numpy_chart[1][1][1][1]), numpy_chart[0],OUTPUT_CHART = "work/minstrel_variance_bimodal_chart_{}_resolution_{}_topics.png".format(numpy_chart[2], numpy_chart[1][1][1][1]), MODEL = numpy_chart[1][1][1][0]))
+    minstrel_variance_bimodal.append(env.ConstructBimodalityVarianceChart("work/minstrel_variance_bimodal_chart_{}_resolution_{}_topics.json".format(numpy_chart[2], numpy_chart[1][1][1][1]), numpy_chart[0],OUTPUT_CHART = "work/minstrel_variance_bimodal_chart_{}_resolution_{}_topics.png".format(numpy_chart[2], numpy_chart[1][1][1][1]), MODEL = numpy_chart[1][1][1][0],ATTESTATION = env["BIMODAL_ATTESTATION_LEVEL"]))
     minstrel_top_words_per_topic.append(env.AnalyzeTopWordsPerTopic("work/minstrel_top_words_per_topic__{}_resolution_{}_topics.json".format(numpy_chart[2], numpy_chart[1][1][1][1]), numpy_chart[0], MODEL =numpy_chart[1][1][1][0]))
 
 

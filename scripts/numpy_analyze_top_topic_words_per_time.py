@@ -5,6 +5,11 @@ import pickle
 import gensim
 import gensim
 import csv
+import gzip
+import torch
+from detm import DETM
+
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -25,14 +30,16 @@ parser.add_argument(
     required=True,
     help="model used for creating dataset"
 )
-
+parser.add_argument('--device') #, choices=["cpu", "cuda"], help='')  
 args = parser.parse_args()
 
 matrix = numpy.load(args.matrix)
+args.device = "cpu" 
+with gzip.open(args.model, "rb") as ifd:
+    model = torch.load(ifd, map_location=torch.device(args.device))
 
-with open(args.model, "rb") as ifd:
-    model = pickle.loads(ifd.read())
 
+    
 output_dictionary = {}
     
 for topic in range(matrix.shape[0]):
@@ -46,7 +53,8 @@ for topic in range(matrix.shape[0]):
         for element in indices_sorted:
             # Convert numpy.int64 to Python's int before appending
             element_index = int(element)  # Convert index to native Python int
-            word = model.id2word[element_index]  # Assuming model.id2word[element] is already a Python native type
+            
+            word = model.id2token[element_index]  # Assuming model.id2word[element] is already a Python native type
             output_list.append([element_index, word])
         
         output_dictionary[topic][time_slice] = output_list

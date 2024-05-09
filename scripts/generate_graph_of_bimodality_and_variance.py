@@ -6,6 +6,9 @@ import gensim
 import gensim
 import csv 
 import matplotlib.pyplot as plt
+import gzip
+import torch
+from detm import DETM
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -26,15 +29,23 @@ parser.add_argument(
     help="where does the file go?"
 )
 
+parser.add_argument(
+    "--word_attestation",
+    dest="word_attestation",
+    help="how many times should a word appear to be qualified?",
+    default = 1,
+    type = int
+)
 
 parser.add_argument(
     "--model",
     dest="model",
     help="model used for creating dataset"
 )
+parser.add_argument('--device') #, choices=["cpu", "cuda"], help='')
 
 args = parser.parse_args()
-
+args.device = "cpu"
 matrix = numpy.load(args.matrix)
 
 
@@ -43,6 +54,7 @@ matrix = numpy.load(args.matrix)
 # creating the variance measure -- get the sum of each word distribution at each time slot index 3) 
 
 sum_over_topics = numpy.sum(matrix, axis=0, keepdims=True)
+
 
 #making sure you never divide by zero
 epsilon = 1e-8
@@ -66,7 +78,6 @@ variance_over_time_normalized = numpy.var(normalized_matrix_2, axis=2)
 average_variance_per_word = numpy.mean(variance_over_time_normalized, axis=0)
 
 
-
 total_average_variance_per_word = numpy.mean(average_variance_per_word)
 
 
@@ -84,9 +95,9 @@ for col_index in range(normalized_matrix.shape[1]):
     
     sorted_column = numpy.sort(normalized_matrix[:, col_index])[::-1]
     
-    # Check the difference between the top two values
+    # Check the difference between the top two values -- this is being done for well attested -- making it an arg 
     
-    if numpy.sum(summed_matrix[:, col_index]) > 100: 
+    if numpy.sum(summed_matrix[:, col_index]) > args.word_attestation: 
             #if normalized_matrix[18,col_index] > .2: 
         number = sorted_column[0] - sorted_column[1]
         #print("this is number")
@@ -95,8 +106,8 @@ for col_index in range(normalized_matrix.shape[1]):
         qualifying_columns.append(value)
 
 
-with open(args.model, "rb") as ifd:
-    model = pickle.loads(ifd.read())
+with gzip.open(args.model, "rb") as ifd:
+    model = torch.load(ifd, map_location=torch.device(args.device))
         
 data_list = []
 #print(qualifying_columns)            
@@ -136,6 +147,7 @@ plt.savefig(args.output_chart, dpi=300, bbox_inches='tight')
 
 # Convert data_list to numpy array for vectorized operations
 data_array = numpy.array(data_list, dtype=object)
+
 bi_modalities = data_array[:, 1].astype(float)
 average_variances = data_array[:, 2].astype(float)
 
@@ -159,7 +171,7 @@ output_dictionary = {}
     
 for corner, words in closest_words.items():
     for word in words:
-        real_word = model.id2word[word[0]]
+        real_word = model.id2token[word[0]]
         word.append(real_word)
         
 
