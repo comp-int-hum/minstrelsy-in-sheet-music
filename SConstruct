@@ -140,9 +140,6 @@ for number_of_topics, model in topic_models.items():
         "work/results_${NUMBER_OF_TOPICS}.jsonl.gz",
         [model, all_ocr],
         NUMBER_OF_TOPICS=number_of_topics,
-        #STEAMROLLER_ACCOUNT=env.get("GPU_ACCOUNT", None),
-        #STEAMROLLER_GPU_COUNT=1,
-        #STEAMROLLER_QUEUE=env.get("GPU_QUEUE", None),
         STEAMROLLER_MEMORY="64G"        
     )
 
