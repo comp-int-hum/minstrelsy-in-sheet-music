@@ -31,8 +31,7 @@ general_list = []
 composer_dictionary = {}
 
 with open (args.data_file, "r") as in_file:
-    for x in in_file:
-        general_list.append(json.loads(x))
+    general_list=(json.load(x))
 
 for song in general_list:
     if composer_dictionary.get(song[args.sort_variable]) != None:

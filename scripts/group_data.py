@@ -104,6 +104,7 @@ if abs(args.random_on) > 0:
             rep_dict["time"] = sub_dict["time"]
             #rep_dict["topics_for_word_phi"] = sub_dict["topics_for_word_phi"]
             rep_dict["pid"] = sub_dict["pid"]
+            rep_dict["title"] = sub_dict["title"]
             #rep_dict["sub_doc_bow_dict"] = sub_dict["sub_doc_bow_dict"]
             rep_dict_list.append(rep_dict)
 

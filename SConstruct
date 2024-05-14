@@ -67,8 +67,10 @@ env = Environment(
 	"CreateVarianceReport": Builder (action = "python scripts/create_variance_report.py --output_file ${TARGETS[0]} --input_file ${SOURCES[0]} --model ${MODEL}", chdir=False), 
 	"ConstructNumpyArray": Builder (action = "python scripts/construct_numpy_array.py --output_file ${TARGETS[0]} --input_file ${SOURCES[0]} --model ${MODEL} --year_bucket ${YEAR_BUCKET} --number ${NUMBER}"), 
 	"ConstructBimodalityVarianceChart": Builder (action = "python scripts/generate_graph_of_bimodality_and_variance.py --output_dictionary ${TARGETS[0]} --matrix ${SOURCES[0]} --output_chart ${OUTPUT_CHART} --word_attestation ${ATTESTATION} --model ${MODEL}"),
-	"AnalyzeTopWordsPerTopic" : Builder (action = "python scripts/numpy_analyze_top_topic_words_per_time.py --output_file ${TARGETS[0]} --matrix ${SOURCES[0]} --model ${MODEL}")
-
+	"AnalyzeTopWordsPerTopic" : Builder (action = "python scripts/numpy_analyze_top_topic_words_per_time.py --output_file ${TARGETS[0]} --matrix ${SOURCES[0]} --model ${MODEL}"),
+	"Add_Info" :  Builder (action = "python scripts/adding_information.py --input_file ${SOURCES[0]} --output_file ${TARGETS[0]}"),
+	"Composer_Heat_Map" : Builder (action = "python scripts/create_composer_heat_map.py --input_file ${SOURCES[0]} --output_file ${TARGETS[0]} --topic_num ${TOPIC}")
+	
 }
 )
 
@@ -293,8 +295,14 @@ for numpy_chart in minstrel_variance_bimodal:
     minstrel_top_words_per_topic.append(env.AnalyzeTopWordsPerTopic("work/minstrel_top_words_per_topic__{}_resolution_{}_topics.json".format(numpy_chart[2], numpy_chart[1][1][1][1]), numpy_chart[0], MODEL =numpy_chart[1][1][1][0]))
 
 
+enriched_levy_list = []
+for levy_list in applied_results_levy_list:
+    enriched_levy_list.append([env.Add_Info("work/enriched_levy_list_with_{}_Topics.jsonl".format(levy_list[1][1]), levy_list[0]), levy_list])
 
+composer_heat_map = []
 
+for enriched_list in enriched_levy_list:
+    composer_heat_map.append(env.Composer_Heat_Map("Composer_Heatmap_{}_Topics.npy".format(enriched_list[1][1][1]), enriched_list[0], TOPIC = enriched_list[1][1][1]))
 
 
 
