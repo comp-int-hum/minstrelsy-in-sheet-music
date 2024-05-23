@@ -13,7 +13,7 @@ import sys
 import json
 from steamroller import Environment
 import glob
-import custom
+
 
 # workaround needed to fix bug with SCons and the pickle module
 del sys.modules['pickle']
@@ -33,10 +33,14 @@ vars.AddVariables(
     ("EXISTING_JSON_LOCATION","","/home/sbacker2/projects/minstrelsy_in_sheet_music/minstrelsy-in-sheet-music/data/json_metadata.jsonl"),
     ("USE_GRID","",1),
     ("RANDOM_LENGTH","",2000),
-    ("GRID_TYPE","", "slurm"),
-    ("GRID_GPU_COUNT","", 1),
-    ("GRID_MEMORY", "", "64G"),
-    ("GRID_TIME", "", "24:00:00"),
+    ("NUM_ID_SPLITS", "",500),
+    ("LIMIT_SPLITS", "", None),
+    ("GPU_ACCOUNT", "", None),
+    ("GPU_QUEUE", "", None),
+    #("GRID_TYPE","", "slurm"),
+    #("GRID_GPU_COUNT","", 1),
+    #("GRID_MEMORY", "", "64G"),
+    #("GRID_TIME", "", "24:00:00"),
     ("BIMODAL_ATTESTATION_LEVEL", "", 1),
     ("WINDOW_SIZE","", [20])
     #("FOLDS", "", 1),
@@ -93,7 +97,10 @@ topic_model_list = []
 for entry in embeddings_list: 
     for number in env["NUMBERS_OF_TOPICS"]:
     	for group in env["WINDOW_SIZE"]:
-    	    topic_model_list.append([(env.TrainModel("work/applied_detm_with_{}_topics.bin".format(number) , entry , DATA_FILE = json_metadata_including_text_ocr, NUMBER_OF_TOPICS = number, BATCH_SIZE = 10, MIN_WORD_OCCURANCE = 1, MAX_WORD_PROPORTION = .99)),number, group])
+    	    topic_model_list.append([(env.TrainModel("work/applied_detm_with_{}_topics.bin".format(number) , entry , DATA_FILE = json_metadata_including_text_ocr, NUMBER_OF_TOPICS = number, BATCH_SIZE = 2000, MIN_WORD_OCCURANCE = 5, MAX_WORD_PROPORTION = .7,STEAMROLLER_ACCOUNT=env.get("GPU_ACCOUNT", None),
+        STEAMROLLER_GPU_COUNT=1,
+        STEAMROLLER_QUEUE=env.get("GPU_QUEUE", None),
+        STEAMROLLER_MEMORY="64G")),number, group])
 
 applied_results_levy_list = []
 
@@ -302,7 +309,7 @@ for levy_list in applied_results_levy_list:
 composer_heat_map = []
 
 for enriched_list in enriched_levy_list:
-    composer_heat_map.append(env.Composer_Heat_Map("Composer_Heatmap_{}_Topics.npy".format(enriched_list[1][1][1]), enriched_list[0], TOPIC = enriched_list[1][1][1]))
+    composer_heat_map.append(env.Composer_Heat_Map("work/Composer_Heatmap_{}_Topics.npy".format(enriched_list[1][1][1]), enriched_list[0], TOPIC = enriched_list[1][1][1]))
 
 
 

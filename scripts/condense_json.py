@@ -68,7 +68,7 @@ for topic_no, resolutions in sorted_results.items():
     #for resolution_no_list in resolution_keys:
         csv_list = []
         for entry in variances: 
-            #print(entry)
+            print(entry)
             topics = entry["overall_variance_by_topic"]
             sorted_topic_dict = sorted(topics.items(), key=lambda x: int(x[0]))
             #print(sorted_topic_dict)

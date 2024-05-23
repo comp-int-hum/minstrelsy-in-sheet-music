@@ -41,16 +41,34 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    "--year_range",
+    dest="year_range",
+    type = int,
+    default = 130, 
+    help="how many years, for bucket division"
+)
+
+parser.add_argument(
     "--year_bucket",
     dest="year_bucket",
     required=True,
     type = int, 
     help="how are you organizing years?"
 )
+
+parser.add_argument(
+    "--date_cutoff",
+    dest="cutoff_date",
+    default=1930,
+    type=int,
+    help="final date counted for groups"
+)
+
+
 parser.add_argument(
     "--start_year",
     dest="start_year",
-    default = 1750, 
+    default = 1800, 
     type = int,
     help="initial year"
 )
@@ -75,8 +93,15 @@ counter = 0
  #   model = pickle.loads(ifd.read())
 #print(len(model.id2word))
 #word_len= len(model.id2word)
-topics = args.number
-buckets = (160 // args.year_bucket) + 1
+
+
+
+
+#note -- this is a BAD FIX -- you should probably change the initial number 
+
+year_range = 130
+
+buckets = (args.year_range // args.year_bucket) + (1 if args.year_range  % args.year_bucket != 0 else 0)
 print(buckets)
 
 #with open(args.input_file, "r") as in_file:
@@ -100,6 +125,7 @@ token2id = {v : k for k, v in model.id2token.items()}
 #print(token2id)
 word_len = len(model.id2token)
 print(word_len)
+topics = args.number
 overall_array= numpy.zeros((topics,word_len,buckets))
 
 counter = 0
@@ -141,30 +167,34 @@ with open(args.input_file, "r") as in_file:
           #  print(second_counter)
            # second_counter = second_counter + 1 
     for song in local_list:    
-       counter = counter + 1       
-       pub_date_bucket = (song["time"] - args.start_year) // args.year_bucket  
-       #this dealt with a "final bucket" issue, not sure if that will still be at play with the detm
-       #if composition["date"]) >= 1925:
-       #   pub_date_bucket = 4
-       print("this is the date bucket")
-       print(pub_date_bucket)
-       for word in song["text"]:
+
+        if song["time"] < args.cutoff_date and song["time"] > args.start_year:
+            counter = counter + 1       
+            pub_date_bucket = (song["time"] - args.start_year) // args.year_bucket  
+
+
+            #this dealt with a "final bucket" issue, not sure if that will still be at play with the detm
+            #if composition["date"]) >= 1925:
+            #   pub_date_bucket = 4
+            print("this is the date bucket")
+            print(pub_date_bucket)
+            for word in song["text"]:
+                if word[1] != None: 
            
-           
-           word_num = token2id[word[0]]
+                    word_num = token2id[word[0]]
            
             
-           top_topic = word[1]
-           #word[2].sort( key = lambda x : x[1], reverse = True)
-           #if len(word[2]) > 0: 
-           #top_topic = word[2][0][0]
-    
-           #print(buckets)
-           #print(composition["pub_date"])
-       overall_array[top_topic,word_num, pub_date_bucket] = overall_array[top_topic,word_num, pub_date_bucket] + 1
-       print(overall_array[ top_topic,word_num, pub_date_bucket])
-print(counter)
-numpy.savetxt("work/test_slice.csv", overall_array[:, :, 1], delimiter=",")
+                    top_topic = word[1]
+               
+                    print("this is the number of buckets")
+                     
+                    print(buckets)
+                    print("this is the publication date")
+                    print(song["time"])
+                    overall_array[top_topic,word_num, pub_date_bucket] = overall_array[top_topic,word_num, pub_date_bucket] + 1
+                    print(overall_array[ top_topic,word_num, pub_date_bucket])
+                    print(counter)
+#numpy.savetxt("work/test_slice.csv", overall_array[:, :, 1], delimiter=",")
 numpy.save(args.output_file, overall_array)
     
                   

@@ -87,7 +87,7 @@ for number_of_topics, resolutions in data.items():
                     print("this is the variance")
                     print(variance)
                     select_collector[int(topic)] = variance
-
+                    
         print("this is the get cycle")
         print(integer_value)
         for x in range(integer_value):
@@ -97,12 +97,20 @@ for number_of_topics, resolutions in data.items():
         print(select_collector.keys())            
                     
         for topic_no, variance_values in variance_collector.items():
-            #print(topic_no)
+            print(topic_no)
             #print(type(topic_no))
-            #print(variance_values)
             print(variance_values)
-            minstrel_z_score = float(((select_collector[topic_no] - statistics.mean(variance_values)) / statistics.stdev(variance_values)))
 
+            divisor = statistics.stdev(variance_values)
+            
+            if statistics.stdev(variance_values) ==0: 
+                   assert select_collector[topic_no] == 0
+                   divisor = statistics.stdev(variance_values) + 1e-10
+
+            
+            
+            minstrel_z_score = float(((select_collector[topic_no] - statistics.mean(variance_values)) / divisor))
+            
             #this is more information that's nice to have here, but need to find a way to bring it in with the detm 
 
             #topic_terms = model.show_topic(topic_no)

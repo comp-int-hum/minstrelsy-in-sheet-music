@@ -79,15 +79,16 @@ with open(args.data, "rt") as ifd:
                 
         
             for word in document_topics_by_word:      
-                word_text = word[0]
+                if word[1] != None: 
+                    word_text = word[0]
                      
-                topic = word[1]
+                    topic = word[1]
                   
-                #if len(topic) > 0:
-                 #   topic = max(topics, key = lambda x: x[1])
-                  #  topic = topic[0]
-                if group_value  < args.cutoff_date and group_value > args.start_date:
-                    groupwise_topic_counts[group][topic] = groupwise_topic_counts[group].get(topic, 0) + 1
+                    #if len(topic) > 0:
+                    #   topic = max(topics, key = lambda x: x[1])
+                    #  topic = topic[0]
+                    if group_value  < args.cutoff_date and group_value > args.start_date:
+                        groupwise_topic_counts[group][topic] = groupwise_topic_counts[group].get(topic, 0) + 1
                     
         counts_list.append(groupwise_topic_counts)                
     

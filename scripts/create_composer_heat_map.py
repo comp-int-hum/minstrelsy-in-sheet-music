@@ -35,14 +35,14 @@ with open (args.data_file, "r") as in_file:
     general_list =json.load(in_file)
 
 
-for song in general_list:
-    print(song)
-    print("")
+#for song in general_list:
+    #print(song)
+    #print("")
 
         
 for song in general_list:
-    print(song)
-    print(song["dc.contributor.other"])
+    #print(song)
+    #print(song["dc.contributor.other"])
     if composer_dictionary.get(song["dc.contributor.other"], "fail") == "fail":
        composer_dictionary[song["dc.contributor.other"]] = [song] 
     else:
@@ -60,15 +60,26 @@ jensen_shannon_array = numpy.zeros((length, length), dtype = float)
 
 for composer, song_list in sorted_dict_descending.items():
 
+    #print(composer)
+    #print("that is composer")
+    #print(song_list)
+    #print("that is the songlist")
+    
     groupwise_topic_counts = {key: 0 for key in range(args.topic_num)} 
     for song in song_list:
         for word in song["text"]:
             #print(word)
+            #print("")
+            if word[1] != None:     
+                current_count = groupwise_topic_counts.get(word[1],0) + 1
+                groupwise_topic_counts[word[1]] = current_count
             
-                
-            current_count = groupwise_topic_counts.get(word[1],0) + 1
-            groupwise_topic_counts[word[1]] = current_count
+    #print(args.topic_num)
+    #print(groupwise_topic_counts)
 
+
+           
+    
     sorted_groupwise_topic_counts = dict(sorted(groupwise_topic_counts.items(), key=lambda item: int(item[0])))
     total = sum(sorted_groupwise_topic_counts.values())
     normalized_topic_counts = {key: value / total for key, value in sorted_groupwise_topic_counts.items()}
@@ -86,13 +97,13 @@ for composer, counts in composer_count_list.items():
         distribution_2 = second_counts
         p = numpy.array([distribution_1.get(count,0) for count in counts])
         q = numpy.array([distribution_2.get(a_count,0) for a_count in second_counts])
-        print("this is p")
-        print(p)
-        print("this is q")
-        print(q)
+        #print("this is p")
+        #print(p)
+        #print("this is q")
+        #print(q)
         divergence = jensenshannon(p,q)
-        print(divergence)
-        print([row_counter, column_counter])
+        #print(divergence)
+        #print([row_counter, column_counter])
         jensen_shannon_array[row_counter,column_counter] = divergence
         column_counter = column_counter + 1
     row_counter = row_counter + 1
@@ -105,6 +116,7 @@ for composer, counts in composer_count_list.items():
             #        top_topic = word[0][1][0]
              #       current_count = groupwise_topic_counts[group].get(top_topic,0) + 1
               #      groupwise_topic_counts[group]["top_topic"] = current_count
+
 output_list = []
 
 for x in composer_count_list:
