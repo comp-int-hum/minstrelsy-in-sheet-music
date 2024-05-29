@@ -1,2 +1,3 @@
 # STEAMROLLER_ENGINE = "slurm"
+# PRECOMPUTED_OCR = True
 # DATA_PATH = ""
