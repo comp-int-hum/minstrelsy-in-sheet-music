@@ -19,7 +19,7 @@ vars.AddVariables(
     ("NUMBERS_OF_TOPICS", "", [20]),
     ("DATA_PATH", "", os.path.expanduser("~/corpora")),
     ("SHEET_MUSIC_ARCHIVE", "", "${DATA_PATH}/levy.zip"),
-    ("WINDOW_SIZES", "", [20]),
+    ("WINDOW_SIZES", "", [50]),
     ("MAX_SUBDOC_LENGTHS", "", [200]),    
     ("EXISTING_JSON", "", False),
     ("NUM_ID_SPLITS", "", 500),

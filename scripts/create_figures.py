@@ -27,16 +27,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", dest="input", help="Input file")
-
-    parser.add_argument("--num_top_words", dest="num_top_words", type=int, default=5)
-    parser.add_argument("--step_size", dest="step_size", type=int, default=2)
-    parser.add_argument("--words_of_interest", dest="words_of_interest", nargs="+", default=[])
-    parser.add_argument("--authors_of_interest", dest="authors_of_interest", nargs="+", default=[])
-    parser.add_argument("--word_image", dest="word_image", help="Output file")
-    parser.add_argument("--word_detail_image", dest="word_detail_image", help="Output file")
+    parser.add_argument("--num_top_words", dest="num_top_words", type=int, default=8)
+    parser.add_argument("--step_size", dest="step_size", type=int, default=1)
     parser.add_argument("--temporal_image", dest="temporal_image", help="Output file")
-    parser.add_argument("--author_image", dest="author_image", help="Output file")
-    #parser.add_argument("--author_histogram", dest="author_histogram", help="Output file")
     parser.add_argument("--latex", dest="latex", help="Output file")
     args = parser.parse_args()
 
@@ -145,3 +138,48 @@ if __name__ == "__main__":
             latex_ofd.write("""{} & {} & {:.3f} \\\\\n""".format(w, year, cpd))
         latex_ofd.write("""\\hline\n""")
         latex_ofd.write("""\\end{tabular}\n""")
+
+
+        jsds = jensenshannon(auth_prev_background_topic_dist, auth_topic_dist, axis=1)
+        authors_by_novelty = []
+        for i in jsds.argsort():
+            authors_by_novelty.append((id2author[i], jsds[i], auth_wins[i]))
+        authors_by_novelty = list(reversed(authors_by_novelty))
+
+
+        latex_ofd.write("""\\begin{tabular}{l l}\n""")
+        latex_ofd.write("""\\hline\n""")
+        latex_ofd.write("""Author & JSD \\\\\n""")
+        latex_ofd.write("""\\hline\n""")
+        for name, val, cp in authors_by_novelty[:5]:
+            year = start + window_size * cp
+            latex_ofd.write("""{} & {} & {:.3f} \\\\\n""".format(name, year, val))
+        latex_ofd.write("""\\hline\n""")
+        for name, val, cp in authors_by_novelty[-5:]:
+            year = start + window_size * cp
+            latex_ofd.write("""{} & {} & {:.3f} \\\\\n""".format(name, year, val))
+        latex_ofd.write("""\\hline\n""")
+        latex_ofd.write("""\\end{tabular}\n""")
+
+
+        # topic evolutions
+        topic_win_word = numpy.transpose(word_win_topic, axes=(2, 1, 0))
+        indices = numpy.arange(topic_win_word.shape[1], step=args.step_size)
+
+        for tid, topic in enumerate(topic_win_word):
+            tt = (topic.T / topic.sum(1)).T
+            top_words = numpy.flip(topic.argsort(1), 1)
+
+            topic_states = []
+            for j in indices:
+                word_ids = top_words[j][:args.num_top_words]
+                #topic_states.append(["{}:{:.03}".format(id2word[wid], tt[j][wid]) for wid in word_ids])
+                topic_states.append(["{}".format(id2word[wid]) for wid in word_ids])
+
+            latex_ofd.write(
+                """\\topicevolution{%s}{0}{0}{{%s}}\n""" % (
+                    tid,
+                    ",".join(["{%s}" % (",".join(state)) for state in topic_states])
+                ) + "\n"
+            )
+            
