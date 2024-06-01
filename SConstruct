@@ -16,11 +16,11 @@ import glob
 
 vars = Variables("custom.py")
 vars.AddVariables( 
-    ("NUMBERS_OF_TOPICS", "", [20]),
+    ("NUMBERS_OF_TOPICS", "", [10, 20, 50]),
     ("DATA_PATH", "", os.path.expanduser("~/corpora")),
     ("SHEET_MUSIC_ARCHIVE", "", "${DATA_PATH}/levy.zip"),
-    ("WINDOW_SIZES", "", [50]),
-    ("MAX_SUBDOC_LENGTHS", "", [200]),    
+    ("WINDOW_SIZES", "", [10, 20, 50]),
+    ("MAX_SUBDOC_LENGTHS", "", [50, 200]),    
     ("EXISTING_JSON", "", False),
     ("NUM_ID_SPLITS", "", 500),
     ("LIMIT_SPLITS", "", None),
@@ -151,8 +151,8 @@ for number_of_topics in env["NUMBERS_OF_TOPICS"]:
     
             figures = env.CreateFigures(
                 [
-                    "work/tables_${MAX_SUBDOC_LENGTH}_${WINDOW_SIZE}.tex",
-                    "work/temporal_image_${MAX_SUBDOC_LENGTH}_${WINDOW_SIZE}.png",
+                    "work/tables_${NUMBER_OF_TOPICS}_${MAX_SUBDOC_LENGTH}_${WINDOW_SIZE}.tex",
+                    "work/temporal_image_${NUMBER_OF_TOPICS}_${MAX_SUBDOC_LENGTH}_${WINDOW_SIZE}.png",
                 ],
                 matrices,
                 NUMBER_OF_TOPICS=number_of_topics,
