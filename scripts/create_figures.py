@@ -46,14 +46,18 @@ if __name__ == "__main__":
     start = precomp["start"]
     window_size = precomp["window_size"]
 
-    # dictionary lookups for author names and words
+    # dictionary lookups for authors, words, levy ids
     id2author = precomp["id2author"]
+    author2id = {v : k for k, v in id2author.items()}
+    id2levy = precomp["id2levy"]
+    levy2id = {v : k for k, v in id2levy.items()}
     id2word = precomp["id2word"]
     word2id = {v : k for k, v in id2word.items()}
 
     # 3-d count matrices (this could have been one 4-d matrix, but since authors only occur in one window it would be inefficient)
     word_win_topic = precomp["wwt"]
     auth_win_topic = precomp["awt"]
+    levy_win_topic = precomp["lwt"]
 
     word_counts = word_win_topic.sum(1).sum(1)
 

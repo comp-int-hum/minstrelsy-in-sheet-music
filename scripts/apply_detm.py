@@ -123,7 +123,8 @@ if __name__ == "__main__":
                                 "title" : title,
                                 "time" : time,
                                 "window" : window,
-                                "num" : subdoc_num
+                                "num" : subdoc_num,
+                                "levy_pid" : j["levy_pid"]
                             }
                         )
             

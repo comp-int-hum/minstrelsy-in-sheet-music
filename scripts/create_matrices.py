@@ -21,6 +21,7 @@ if __name__ == "__main__":
         
     # text author title time window num
     docs = {}
+    doc2title, doc2author, doc2year = {}, {}, {}
     unique_times = set()
     unique_words = set()
     unique_topics = set()
@@ -31,10 +32,13 @@ if __name__ == "__main__":
             title = j["title"]
             author = j["author"]
             year = j["time"]
-            num = j["num"]            
-            key = (title, author, year)
-            docs[key] = docs.get(key, [])
-            docs[key].append(j)
+            num = j["num"]
+            levy = j["levy_pid"]
+            doc2title[levy] = title
+            doc2author[levy] = author
+            doc2year[levy] = year
+            docs[levy] = docs.get(levy, [])
+            docs[levy].append(j)
             unique_times.add(year)
             unique_authors.add(author)
             for w, t in j["text"]:
@@ -68,26 +72,34 @@ if __name__ == "__main__":
     nwords = len(unique_words)
     ntopics = len(unique_topics)
     nauths = len(unique_authors)
+    ndocs = len(docs)
     word2id = {w : i for i, w in enumerate(unique_words)}
     id2word = {i : w for w, i in word2id.items()}
     author2id = {a : i for i, a in enumerate(unique_authors)}
     id2author = {i : a for a, i in author2id.items()}
-
+    levy2id = {d : i for i, d in enumerate(docs.keys())}
+    id2levy = {i : d for d, i in levy2id.items()}
     
     logger.info(
-        "Found %d windows, %d unique words, %d unique topics, and %d unique authors",
+        "Found %d windows, %d unique words, %d unique topics, %d unique documents, and %d unique authors",
         nwins,
         nwords,
         ntopics,
+        ndocs,
         nauths
     )
 
     words_wins_topics = numpy.zeros(shape=(nwords, nwins, ntopics))
     auths_wins_topics = numpy.zeros(shape=(nauths, nwins, ntopics))
-
-    for (title, author, year), subdocs in docs.items():
+    levy_wins_topics = numpy.zeros(shape=(ndocs, nwins, ntopics))
+    
+    for levy, subdocs in docs.items():
+        title = doc2title[levy]
+        author = doc2author[levy]
+        year = doc2year[levy]
         aid = author2id[author]
         win = time2window[year]
+        did = levy2id[levy]
         
         for subdoc in subdocs:
             for word, topic in subdoc["text"]:
@@ -95,14 +107,20 @@ if __name__ == "__main__":
                     wid = word2id[word]
                     words_wins_topics[wid, win, topic] += 1
                     auths_wins_topics[aid, win, topic] += 1
-    
+                    levy_wins_topics[did, win, topic] += 1
+                    
     matrices = {
         "start" : min_time,
         "window_size" : args.window_size,
         "id2author" : id2author,
         "id2word" : id2word,
+        "id2levy" : id2levy,
+        "doc2title" : doc2title,
+        "doc2author" : doc2author,
+        "doc2year" : doc2year,
         "wwt" : words_wins_topics,
         "awt" : auths_wins_topics,
+        "lwt" : levy_wins_topics
     }
 
     with gzip.open(args.output, "wb") as ofd:
