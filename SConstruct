@@ -16,11 +16,11 @@ import glob
 
 vars = Variables("custom.py")
 vars.AddVariables( 
-    ("NUMBERS_OF_TOPICS", "", [10, 20, 50]),
+    ("NUMBERS_OF_TOPICS", "", [100]),
     ("DATA_PATH", "", os.path.expanduser("~/corpora")),
     ("SHEET_MUSIC_ARCHIVE", "", "${DATA_PATH}/levy.zip"),
-    ("WINDOW_SIZES", "", [10, 20, 50]),
-    ("MAX_SUBDOC_LENGTHS", "", [50, 200]),    
+    ("WINDOW_SIZES", "", [25]),
+    ("MAX_SUBDOC_LENGTHS", "", [50]),    
     ("EXISTING_JSON", "", False),
     ("NUM_ID_SPLITS", "", 500),
     ("LIMIT_SPLITS", "", None),
@@ -31,6 +31,9 @@ vars.AddVariables(
     ("MAX_YEAR", "", 1920),
     ("EPOCHS", "", 1000),
     ("LEARNING_RATE", "", .015),
+    ("RANDOM_SEED", "", 1),
+    ("NUM_TOP_WORDS", "", 8),
+    ("MIN_WORD_OCCURRENCE", "", 50),
 )    
 
 env = Environment(
@@ -54,7 +57,7 @@ env = Environment(
 	    action = "python scripts/train_embeddings.py --input ${SOURCES[0]} --output ${TARGETS[0]}"
         ), 
 	"TrainDETM" : Builder(
-            action="python scripts/train_detm.py --embeddings ${SOURCES[0]} --train ${SOURCES[1]}  --output ${TARGETS[0]} --num_topics ${NUMBER_OF_TOPICS} --batch_size ${BATCH_SIZE} --min_word_occurrence ${MIN_WORD_OCCURRENCE} --max_word_proportion ${MAX_WORD_PROPORTION} --window_size ${WINDOW_SIZE} --max_subdoc_length ${MAX_SUBDOC_LENGTH} --epochs ${EPOCHS} --learning_rate ${LEARNING_RATE}"
+            action="python scripts/train_detm.py --embeddings ${SOURCES[0]} --train ${SOURCES[1]}  --output ${TARGETS[0]} --num_topics ${NUMBER_OF_TOPICS} --batch_size ${BATCH_SIZE} --min_word_occurrence ${MIN_WORD_OCCURRENCE} --max_word_proportion ${MAX_WORD_PROPORTION} --window_size ${WINDOW_SIZE} --max_subdoc_length ${MAX_SUBDOC_LENGTH} --epochs ${EPOCHS} --learning_rate ${LEARNING_RATE} --random_seed ${RANDOM_SEED}"
         ),
         "ApplyDETM" : Builder(
             action="python scripts/apply_detm.py --model ${SOURCES[0]} --input ${SOURCES[1]} --output ${TARGETS[0]} --max_subdoc_length ${MAX_SUBDOC_LENGTH}"
@@ -63,10 +66,10 @@ env = Environment(
             action="python scripts/generate_word_similarity_table.py --embeddings ${SOURCES[0]} --output ${TARGETS[0]} --target_words ${WORD_SIMILARITY_TARGETS} --top_neighbors ${TOP_NEIGHBORS}"
         ),
         "CreateMatrices" : Builder(
-            action="python scripts/create_matrices.py --topic_annotations ${SOURCES[0]} --output ${TARGETS[0]}"
+            action="python scripts/create_matrices.py --topic_annotations ${SOURCES[0]} --output ${TARGETS[0]} --window_size ${WINDOW_SIZE}"
         ),
         "CreateFigures" : Builder(
-            action="python scripts/create_figures.py --input ${SOURCES[0]} --latex ${TARGETS[0]} --temporal_image ${TARGETS[1]}"
+            action="python scripts/create_figures.py --input ${SOURCES[0]} --latex ${TARGETS[0]} --temporal_image ${TARGETS[1]} --num_top_words ${NUM_TOP_WORDS}"
         )
     }
 )
@@ -107,7 +110,7 @@ embeddings = env.TrainEmbeddings(
 env.GenerateWordSimilarityTable(
     "work/word_similarity.tex",
     embeddings,
-    WORD_SIMILARITY_TARGETS=["mother", "war", "south", "love", "toil"],
+    WORD_SIMILARITY_TARGETS=["mother", "war", "south", "love", "toil", "dem"],
     TOP_NEIGHBORS=5
 )
 
@@ -123,8 +126,8 @@ for number_of_topics in env["NUMBERS_OF_TOPICS"]:
                 BATCH_SIZE=2000,
                 MAX_SUBDOC_LENGTH=max_subdoc_length,
                 WINDOW_SIZE=window_size,
-                MIN_WORD_OCCURRENCE=5,
                 MAX_WORD_PROPORTION=0.7,
+                RANDOM_SEED=env["RANDOM_SEED"],
                 STEAMROLLER_ACCOUNT=env.get("GPU_ACCOUNT", None),
                 STEAMROLLER_GPU_COUNT=1,
                 STEAMROLLER_QUEUE=env.get("GPU_QUEUE", None),

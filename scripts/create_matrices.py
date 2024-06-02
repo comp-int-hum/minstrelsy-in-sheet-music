@@ -108,7 +108,7 @@ if __name__ == "__main__":
                     words_wins_topics[wid, win, topic] += 1
                     auths_wins_topics[aid, win, topic] += 1
                     levy_wins_topics[did, win, topic] += 1
-                    
+    
     matrices = {
         "start" : min_time,
         "window_size" : args.window_size,

@@ -114,19 +114,19 @@ if __name__ == "__main__":
                                 subdoc_text.append((t, tid))
                             else:
                                 subdoc_text.append((t, None))
-                    if len(subdoc_counts) > 0:
-                        all_subdocs.append(
-                            {
-                                "text" : subdoc_text,
-                                "counts" : subdoc_counts,
-                                "author" : author,
-                                "title" : title,
-                                "time" : time,
-                                "window" : window,
-                                "num" : subdoc_num,
-                                "levy_pid" : j["levy_pid"]
-                            }
-                        )
+                        if len(subdoc_counts) > 0:
+                            all_subdocs.append(
+                                {
+                                    "text" : subdoc_text,
+                                    "counts" : subdoc_counts,
+                                    "author" : author,
+                                    "title" : title,
+                                    "time" : time,
+                                    "window" : window,
+                                    "num" : subdoc_num,
+                                    "levy_pid" : j["levy_pid"]
+                                }
+                            )
             
         logger.info("Found %d sub-docs", len(all_subdocs))
 

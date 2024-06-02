@@ -131,7 +131,6 @@ if __name__ == "__main__":
     parser.add_argument('--mode', type=str, default='train', help='train or eval model')
     parser.add_argument('--device') #, choices=["cpu", "cuda"], help='')
     parser.add_argument('--optimizer', type=str, default='adam', help='choice of optimizer')
-    parser.add_argument('--seed', type=int, default=2019, help='random seed (default: 1)')
     parser.add_argument('--enc_drop', type=float, default=0.0, help='dropout rate on encoder')
     parser.add_argument('--eta_dropout', type=float, default=0.0, help='dropout rate on rnn for eta')
     parser.add_argument('--clip', type=float, default=2.0, help='gradient clipping')
@@ -154,16 +153,17 @@ if __name__ == "__main__":
     parser.add_argument('--train_proportion', type=float, default=0.7, help='')
     parser.add_argument("--min_time", type=int, default=0)
     parser.add_argument("--max_time", type=int, default=0)
-
+    parser.add_argument("--early_stop", type=int, default=20)
+    parser.add_argument("--reduce_rate", type=int, default=5)
     args = parser.parse_args()
     
     logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
     if args.random_seed:
         random.seed(args.random_seed)
-        np.random.seed(args.seed)
+        np.random.seed(args.random_seed)
         torch.backends.cudnn.deterministic = True
-        torch.manual_seed(args.seed)
+        torch.manual_seed(args.random_seed)
 
     if not args.device:
         args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")    
@@ -300,10 +300,8 @@ if __name__ == "__main__":
         sorted_times = sorted_times[j:]
         cur_min_time = cur_max_time
 
-        
+    
     logger.info("Found %d sub-docs, min time = %d, max time = %d, window count = %d", sum([len(v) for v in data.values()]), min_time, max_time, len(window_counts))
-    #print(window_counts)
-    #sys.exit()
 
             
     sorted_times = sorted_times[j:]
@@ -538,11 +536,11 @@ if __name__ == "__main__":
         else:
             since_improvement += 1
         since_annealing += 1
-        if since_improvement > 5 and since_annealing > 5 and since_improvement < 10:
+        if since_improvement > args.reduce_rate and since_annealing > args.reduce_rate: # and since_improvement < 10:
             optimizer.param_groups[0]['lr'] /= args.lr_factor
             model.load_state_dict(best_state)
             since_annealing = 0
-        elif since_improvement >= 10:
+        elif since_improvement >= args.early_stop:
             break
 
     model.load_state_dict(best_state)
